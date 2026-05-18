@@ -576,7 +576,7 @@
             favorites: [],
             playlists: [],
             playHistory: {},
-            trendingStats: {},
+            trendingStats: {}, // Stores: { playCounts: {}, listenTime: {} }
             currentView: 'home',
             
             queue: [],
@@ -588,17 +588,45 @@
             isDesktopFullScreen: false,
             audio: new Audio(),
             songToPlaylistId: null,
-            isAdmin: false // Hidden by default
+            isAdmin: false 
         };
+
+        // --- Active Listen Time Tracking ---
+        window.currentListenSecs = 0;
+        window.listenTimer = null;
+        window.lastPlayedSongId = null;
 
         // Audio initialization
         AppState.audio.volume = 1;
         AppState.audio.addEventListener('timeupdate', updateProgressUI);
-        AppState.audio.addEventListener('ended', handleSongEnd);
-        AppState.audio.addEventListener('play', () => { AppState.isPlaying = true; updatePlayButtonUI(); renderActiveStates(); });
-        AppState.audio.addEventListener('pause', () => { AppState.isPlaying = false; updatePlayButtonUI(); renderActiveStates(); });
         
-        // Add error handling to catch unplayable URLs
+        AppState.audio.addEventListener('play', () => { 
+            AppState.isPlaying = true; 
+            updatePlayButtonUI(); 
+            renderActiveStates();
+            // Start listen timer
+            clearInterval(window.listenTimer);
+            window.listenTimer = setInterval(() => { window.currentListenSecs++; }, 1000);
+        });
+        
+        AppState.audio.addEventListener('pause', () => { 
+            AppState.isPlaying = false; 
+            updatePlayButtonUI(); 
+            renderActiveStates(); 
+            // Stop listen timer
+            clearInterval(window.listenTimer);
+        });
+
+        AppState.audio.addEventListener('ended', () => {
+            saveListenDuration(); // Save current song's duration to Firebase before moving to next
+            if (AppState.isRepeat) {
+                AppState.audio.currentTime = 0;
+                AppState.audio.play();
+            } else {
+                playNext();
+            }
+        });
+        
         AppState.audio.addEventListener('error', (e) => {
             console.error("Audio playback error:", e);
             showToast("Error playing track. Ensure the URL points to a raw media file.");
@@ -754,6 +782,7 @@
                 els.desktopPlayer.classList.add('player-hidden');
                 els.mobileMiniPlayer.classList.add('player-hidden');
                 AppState.audio.pause();
+                clearInterval(window.listenTimer);
             }
         });
 
@@ -765,7 +794,6 @@
             const catalogRef = collection(db, 'artifacts', AppID, 'public', 'data', 'songs');
             onSnapshot(catalogRef, async (snapshot) => {
                 if (snapshot.empty) {
-                    // Auto-seed initial catalog if empty
                     for (const song of initialMockSongs) {
                         await setDoc(doc(catalogRef, song.id), song);
                     }
@@ -774,7 +802,6 @@
                     snapshot.forEach(docSnap => loadedSongs.push({ id: docSnap.id, ...docSnap.data() }));
                     AppState.catalog = loadedSongs;
 
-                    // Instantly refresh view if it depends on catalog to show new uploads dynamically
                     if (['home', 'search', 'favorites', 'playlist', 'admin'].includes(AppState.currentView)) {
                         if(AppState.currentView === 'home') renderHome();
                         if(AppState.currentView === 'search' && document.getElementById('search-input')?.value) handleSearch({target: document.getElementById('search-input')});
@@ -804,7 +831,6 @@
                 }
                 renderSidebarPlaylists();
                 
-                // Re-render current view if needed
                 if(AppState.currentView === 'favorites') renderFavorites();
                 else if (AppState.currentView === 'playlist') renderPlaylistView(document.querySelector('h2')?.innerText || '');
 
@@ -817,7 +843,7 @@
             const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
             trendingUnsubscribe = onSnapshot(trendingRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    AppState.trendingStats = docSnap.data().playCounts || {};
+                    AppState.trendingStats = docSnap.data() || { playCounts: {}, listenTime: {} };
                 }
                 if(AppState.currentView === 'home') renderHome();
             });
@@ -832,27 +858,42 @@
             }, { merge: true });
         }
 
+        // --- Core Analytics & Trending Algorithms ---
+        
+        // Advanced Trending Score: (Plays * 50) + Total Seconds Listened
+        const getTrendingScore = (id) => {
+            const plays = AppState.trendingStats?.playCounts?.[id] || 0;
+            const listenSeconds = AppState.trendingStats?.listenTime?.[id] || 0;
+            return (plays * 50) + listenSeconds;
+        };
+
         async function recordPlay(songId) {
             if (!AppState.user) return;
             const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
+            
+            // 1. Increment Global Starts
             try {
-                const docSnap = await getDoc(trendingRef);
-                if (!docSnap.exists()) {
-                    await setDoc(trendingRef, { playCounts: { [songId]: 1 } });
-                } else {
-                    await updateDoc(trendingRef, { [`playCounts.${songId}`]: increment(1) });
-                }
+                await setDoc(trendingRef, { playCounts: { [songId]: increment(1) } }, { merge: true });
             } catch (err) {}
             
-            // Record User specific history
+            // 2. Record User Local History
             const userRef = doc(db, 'artifacts', AppID, 'users', AppState.user.uid, 'profile', 'data');
             try {
-                await setDoc(userRef, {
-                    playHistory: { [songId]: increment(1) }
-                }, { merge: true });
-                
+                await setDoc(userRef, { playHistory: { [songId]: increment(1) } }, { merge: true });
                 AppState.playHistory[songId] = (AppState.playHistory[songId] || 0) + 1;
             } catch (err) {}
+        }
+
+        // Accurately logs real listen time to Firebase to make Trending algorithm legitimate
+        function saveListenDuration() {
+            if (window.lastPlayedSongId && window.currentListenSecs > 5) {
+                const id = window.lastPlayedSongId;
+                const secs = window.currentListenSecs;
+                
+                const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
+                setDoc(trendingRef, { listenTime: { [id]: increment(secs) } }, { merge: true }).catch(console.error);
+            }
+            window.currentListenSecs = 0;
         }
 
         // --- Navigation & Rendering ---
@@ -892,38 +933,76 @@
             }, 200); // matches CSS duration
         };
 
+        // Custom function for the big Endless Radio button
+        window.playAll = () => {
+            if(AppState.catalog.length === 0) return;
+            const shuffled = [...AppState.catalog].sort(() => 0.5 - Math.random());
+            AppState.isShuffle = true; 
+            
+            // Sync UI toggle for shuffle
+            ['desktop-shuffle', 'mfp-shuffle'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.classList.add('text-brand-500');
+                    if(id==='desktop-shuffle') el.classList.remove('text-gray-400');
+                    if(id==='mfp-shuffle') el.classList.remove('text-white/70');
+                }
+            });
+
+            playQueue(shuffled, 0);
+            showToast("Playing Endless Radio Mode...");
+        };
+
         function renderHome() {
-            if(AppState.catalog.length === 0) return; // Prevent initial flash if loading
+            if(AppState.catalog.length === 0) return;
             
             const catalog = AppState.catalog;
-            const trending = [...catalog].sort((a, b) => (AppState.trendingStats[b.id] || 0) - (AppState.trendingStats[a.id] || 0)).slice(0, 10);
             
-            // Daily top hits (mock 24 hours based on trending subset)
-            const dailyHits = [...trending].slice(0, 8); 
-
+            // Trending explicitly uses our new algorithm `getTrendingScore`
+            const trending = [...catalog].sort((a, b) => getTrendingScore(b.id) - getTrendingScore(a.id)).slice(0, 10);
+            
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
-            // 1. Better Daily Mix Generation
+            // --- Vibe Match (Predictive Engine) ---
+            let userGenresMap = {};
+            // Weight favorites heavily
+            AppState.favorites.forEach(id => {
+                const song = catalog.find(s => s.id === id);
+                if(song && song.genre) userGenresMap[song.genre] = (userGenresMap[song.genre] || 0) + 3;
+            });
+            // Weight play history
+            Object.entries(AppState.playHistory || {}).forEach(([id, plays]) => {
+                const song = catalog.find(s => s.id === id);
+                if(song && song.genre) userGenresMap[song.genre] = (userGenresMap[song.genre] || 0) + plays;
+            });
+
+            const topGenres = Object.entries(userGenresMap).sort((a, b) => b[1] - a[1]).map(e => e[0]).slice(0, 3);
+            
+            let vibeMatch = [];
+            if (topGenres.length > 0) {
+                // Find songs they like the genre of, but haven't played much (less than 3 times)
+                vibeMatch = catalog.filter(s => topGenres.includes(s.genre) && (AppState.playHistory[s.id] || 0) < 3);
+                vibeMatch = vibeMatch.sort(() => 0.5 - Math.random()).slice(0, 10);
+            }
+            if (vibeMatch.length < 5) { // Fallback if they exhausted their genre or are new
+                vibeMatch = catalog.filter(s => !topGenres.includes(s.genre)).sort(() => 0.5 - Math.random()).slice(0, 10);
+            }
+
+            // --- Your Daily Mix (Favorites + Discoveries) ---
             let yourMix = [];
             const topPlayedIds = Object.entries(AppState.playHistory || {}).sort((a, b) => b[1] - a[1]).map(e => e[0]);
             const topPlayedSongs = topPlayedIds.map(id => catalog.find(s => s.id === id)).filter(Boolean);
             
-            // Add Top 4 played songs
-            yourMix.push(...topPlayedSongs.slice(0, 4));
-            
-            // Find 4 recommendations from favorite genres
-            const favGenres = [...new Set(topPlayedSongs.slice(0, 5).map(s => s.genre).concat(AppState.favorites.map(id => catalog.find(s=>s.id===id)?.genre)))].filter(Boolean);
-            if (favGenres.length > 0) {
-                const recommendations = catalog.filter(s => favGenres.includes(s.genre) && !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
-                yourMix.push(...recommendations.slice(0, 4));
+            yourMix.push(...topPlayedSongs.slice(0, 4)); // 4 top hits
+            if (topGenres.length > 0) {
+                const recommendations = catalog.filter(s => topGenres.includes(s.genre) && !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
+                yourMix.push(...recommendations.slice(0, 4)); // 4 recommendations
             }
-
-            // Fill the rest (up to 10) with complete wildcards
             const wildcards = catalog.filter(s => !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
-            yourMix.push(...wildcards.slice(0, 10 - yourMix.length));
-            yourMix = yourMix.slice(0, 10); // cap at 10
+            yourMix.push(...wildcards.slice(0, 10 - yourMix.length)); // Fill rest
+            yourMix = yourMix.slice(0, 10);
 
-            // 2. Group by Genres dynamically for Shelves
+            // --- Dynamic Genre Shelves ---
             const genresMap = {};
             catalog.forEach(song => {
                 if (song.genre) {
@@ -932,9 +1011,7 @@
                 }
             });
 
-            const genreSectionsHTML = Object.keys(genresMap)
-                .sort() // Alphabetical sorting
-                .filter(genre => genresMap[genre].length > 0)
+            const genreSectionsHTML = Object.keys(genresMap).sort().filter(genre => genresMap[genre].length > 0)
                 .map(genre => {
                     const genreSongs = genresMap[genre].slice(0, 10);
                     return `
@@ -950,25 +1027,38 @@
                 }).join('');
 
             const html = `
-                <div class="relative w-full h-48 md:h-64 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-8 group cursor-pointer shadow-xl" onclick="playQueue(${JSON.stringify(trending).replace(/"/g, '&quot;')}, 0)">
-                    <div class="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-dark-900/60 to-transparent z-10 flex flex-col justify-center p-6 md:p-10">
-                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2 drop-shadow-md">Daily Update</span>
-                        <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">Global Top 50</h2>
-                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2 drop-shadow-md">The most played tracks across the Aura universe in the last 24 hours.</p>
-                        <button class="mt-6 bg-brand-500 hover:bg-brand-400 text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
-                            <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
-                        </button>
+                <div class="relative w-full h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-10 group cursor-pointer shadow-xl border border-white/5">
+                    <div class="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-dark-900/70 to-transparent z-10 flex flex-col justify-center p-6 md:p-12">
+                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2 drop-shadow-md">Evolve Your Sound</span>
+                        <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-3 drop-shadow-lg tracking-tight">Unlimited<br/>Vibes.</h2>
+                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2 drop-shadow-md">Hit play and let our algorithm serve you an endless stream of pure music.</p>
+                        
+                        <div class="mt-6 flex flex-wrap items-center gap-4">
+                            <button onclick="playAll()" class="bg-brand-500 hover:bg-brand-400 text-white px-6 py-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20">
+                                <i data-lucide="shuffle" class="w-5 h-5 mr-2"></i> Endless Radio
+                            </button>
+                        </div>
                     </div>
-                    <img src="${trending[0]?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80'}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay group-hover:scale-105 transition-transform duration-700">
+                    <img src="${trending[0]?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80'}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-[20s] hover:scale-110">
                 </div>
 
                 <section>
                     <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
                         <i data-lucide="flame" class="text-brand-400 w-5 h-5"></i>
-                        Most Played in 24 Hours
+                        Trending Now
                     </h3>
                     <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
-                        ${dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('')}
+                        ${trending.map((song, i) => SongCardLarge(song, trending, i)).join('')}
+                    </div>
+                </section>
+
+                <section class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
+                        <i data-lucide="radar" class="text-brand-400 w-5 h-5"></i>
+                        Vibe Match For You
+                    </h3>
+                    <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
+                        ${vibeMatch.map((song, i) => SongCardLarge(song, vibeMatch, i)).join('')}
                     </div>
                 </section>
 
@@ -993,17 +1083,6 @@
                 </section>
 
                 ${genreSectionsHTML}
-
-                <!-- Dedicated Complete Catalog Section -->
-                <section class="mt-12 pt-6 border-t border-white/5 pb-10">
-                    <h3 class="text-xl font-bold mb-6 tracking-tight flex items-center gap-2">
-                        <i data-lucide="disc-3" class="text-brand-400 w-5 h-5"></i>
-                        All Tracks
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        ${catalog.map((song, i) => SongCardSmall(song, catalog, i)).join('')}
-                    </div>
-                </section>
             `;
             els.contentArea.innerHTML = html;
         }
@@ -1304,7 +1383,6 @@
             let coverUrl = document.getElementById('up-cover-url').value.trim();
             let audioUrl = document.getElementById('up-audio-url').value.trim();
 
-            // Auto-convert standard GitHub page links to RAW media links
             const formatGitUrl = (url) => {
                 if(!url) return url;
                 if(url.includes('github.com') && url.includes('/blob/')) {
@@ -1317,18 +1395,15 @@
             coverUrl = formatGitUrl(coverUrl);
             audioUrl = formatGitUrl(audioUrl);
 
-            // Auto-prepend Base URL if dealing with simple filenames
             if (baseUrlInput) {
                 const base = baseUrlInput.endsWith('/') ? baseUrlInput : baseUrlInput + '/';
                 if (!coverUrl.startsWith('http')) coverUrl = base + coverUrl;
                 if (!audioUrl.startsWith('http')) audioUrl = base + audioUrl;
             }
             
-            // Final pass in case concatenation resulted in a blob URL
             coverUrl = formatGitUrl(coverUrl);
             audioUrl = formatGitUrl(audioUrl);
 
-            // Validate that we ended up with valid web links
             if (!coverUrl.startsWith('http') || !audioUrl.startsWith('http')) {
                 return showToast("Error: Please provide full URLs or set a Base URL above.");
             }
@@ -1352,7 +1427,6 @@
 
                 showToast("Song successfully added to catalog!");
                 
-                // Reset fields but intentionally keep the Base URL for quick subsequent uploads
                 document.getElementById('up-title').value = '';
                 document.getElementById('up-artist').value = '';
                 document.getElementById('up-genre').value = '';
@@ -1374,7 +1448,6 @@
             try {
                 await deleteDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'songs', songId));
                 showToast("Song deleted from catalog");
-                // The UI will auto-refresh via the onSnapshot listener on the catalog
             } catch (err) {
                 showToast("Failed to delete: " + err.message);
             }
@@ -1383,7 +1456,6 @@
 
         // --- UI Components & Active States ---
         
-        // Dynamically applies active styles to currently playing songs in the DOM
         window.renderActiveStates = () => {
             const currentId = AppState.queue[AppState.currentIndex]?.id;
             const isPlaying = AppState.isPlaying;
@@ -1454,7 +1526,7 @@
                     <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
                 </div>
                 <button class="p-3 -mr-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')">
-                    <i data-lucide="more-horizontal" class="w-6 h-6 md:w-5 md:h-5 text-gray-400 hover:text-white"></i>
+                    <i data-lucide="list-plus" class="w-6 h-6 md:w-5 md:h-5 text-gray-400 hover:text-white"></i>
                 </button>
             </div>
         `;
@@ -1465,7 +1537,6 @@
                 
                 <div class="w-6 md:w-8 text-center text-gray-400 text-sm font-medium hidden md:block group-hover:hidden song-number shrink-0">${index + 1}</div>
                 
-                <!-- Equalizer Animation for active song -->
                 <div class="w-6 md:w-8 hidden items-end justify-center gap-[2px] h-4 song-eq group-hover:hidden shrink-0">
                     <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
                 </div>
@@ -1491,7 +1562,7 @@
                         <i data-lucide="minus-circle" class="w-6 h-6 md:w-5 md:h-5"></i>
                     </button>` : `
                     <button class="p-3 md:p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
-                        <i data-lucide="more-horizontal" class="w-6 h-6 md:w-5 md:h-5"></i>
+                        <i data-lucide="list-plus" class="w-6 h-6 md:w-5 md:h-5"></i>
                     </button>`}
                 </div>
             </div>
@@ -1676,14 +1747,18 @@
 
         // --- Player Controls & Endless Auto-Play Logic ---
         window.playQueue = (queue, index) => {
-            AppState.queue = [...queue]; // Create a copy so we don't accidentally mutate the original shelf array
+            AppState.queue = [...queue]; 
             AppState.currentIndex = index;
             loadSong();
         };
 
         function loadSong() {
+            saveListenDuration(); 
+
             const song = AppState.queue[AppState.currentIndex];
             if (!song) return;
+
+            window.lastPlayedSongId = song.id;
 
             els.desktopPlayer.classList.remove('player-hidden');
             els.mobileMiniPlayer.classList.remove('player-hidden');
@@ -1799,15 +1874,6 @@
             }
         };
 
-        function handleSongEnd() {
-            if (AppState.isRepeat) {
-                AppState.audio.currentTime = 0;
-                AppState.audio.play();
-            } else {
-                playNext();
-            }
-        }
-
         window.toggleShuffle = (e) => {
             if(e) e.stopPropagation();
             AppState.isShuffle = !AppState.isShuffle;
@@ -1894,7 +1960,7 @@
 
         // --- Desktop Full Screen Overlay Toggle ---
         window.toggleDesktopFullScreen = () => {
-            if (AppState.queue.length === 0) return; // Prevent opening if no song loaded
+            if (AppState.queue.length === 0) return;
             AppState.isDesktopFullScreen = !AppState.isDesktopFullScreen;
             const view = document.getElementById('desktop-fullscreen-view');
             if (AppState.isDesktopFullScreen) {
@@ -1977,7 +2043,6 @@
             }
         });
 
-        // Fast, hardware-accelerated left/right swipe animations
         window.animateSwipe = (direction) => {
             const cover = document.getElementById('mfp-cover-art');
             if(!cover) {
@@ -2003,6 +2068,11 @@
                 }, 20); 
             }, 150);
         };
+
+        // Ensure we save listen times if user closes tab
+        window.addEventListener('beforeunload', () => {
+            saveListenDuration();
+        });
 
         // --- User Actions ---
         window.handleSignOut = () => {
