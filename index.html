@@ -299,6 +299,40 @@
     <!-- PLAYERS ARCHITECTURE (Mobile & Desktop)    -->
     <!-- ========================================== -->
 
+    <!-- Desktop Full Screen View (PC Immersive Player) -->
+    <div id="desktop-fullscreen-view" class="fixed top-0 left-0 right-0 bottom-[90px] z-[45] flex-col items-center justify-center transition-all duration-500 overflow-hidden bg-dark-900 opacity-0 pointer-events-none hidden md:flex">
+        <!-- Blurred Background -->
+        <div id="dfs-bg" class="absolute inset-0 bg-cover bg-center opacity-40 blur-[80px] scale-110 transition-all duration-1000"></div>
+        <div class="absolute inset-0 bg-black/20"></div>
+        
+        <!-- Collapse Button -->
+        <button onclick="toggleDesktopFullScreen()" class="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10 hover:scale-105 active:scale-95">
+            <i data-lucide="minimize-2" class="w-6 h-6 text-white"></i>
+        </button>
+
+        <!-- Content -->
+        <div class="relative z-10 flex items-center justify-center w-full max-w-6xl gap-16 px-12">
+            <img src="" class="js-cover-art w-80 h-80 lg:w-[400px] lg:h-[400px] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-[1.02] object-cover bg-dark-800">
+            <div class="flex flex-col flex-1 min-w-0">
+                <span class="text-brand-400 font-bold tracking-[0.2em] uppercase mb-4 text-sm drop-shadow-md">Now Playing</span>
+                <h2 class="js-track-title text-5xl lg:text-7xl font-black text-white mb-4 drop-shadow-lg leading-tight truncate w-full">Select track</h2>
+                <p class="js-track-artist text-2xl text-gray-300 font-medium drop-shadow-md truncate w-full">Artist</p>
+                <div class="mt-8 flex items-center gap-4">
+                    <button onclick="toggleCurrentFavorite(event)" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all hover:scale-105">
+                        <i data-lucide="heart" id="dfs-like-icon" class="w-8 h-8 text-white transition-colors"></i>
+                    </button>
+                    <!-- Small playing animation -->
+                    <div class="flex items-end justify-center gap-1 h-6 ml-4 opacity-70">
+                        <div class="eq-bar w-1.5 bg-white"></div>
+                        <div class="eq-bar w-1.5 bg-white"></div>
+                        <div class="eq-bar w-1.5 bg-white"></div>
+                        <div class="eq-bar w-1.5 bg-white"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 1. Mobile Mini Player (Floating above Nav) -->
     <div id="mobile-mini-player" class="player-hidden fixed bottom-[66px] left-2 right-2 bg-dark-800/90 backdrop-blur-xl rounded-xl h-[56px] z-30 flex items-center px-2 shadow-2xl md:hidden cursor-pointer transition-transform overflow-hidden group border border-white/5" onclick="expandPlayer()">
         <!-- Progress Bar Line -->
@@ -401,10 +435,15 @@
         
         <!-- Left: Info -->
         <div class="flex items-center gap-4 w-1/3">
-            <img src="" class="js-cover-art w-14 h-14 rounded-md object-cover shadow-md bg-dark-800">
+            <div class="relative group cursor-pointer" onclick="toggleDesktopFullScreen()" title="Expand Player">
+                <img src="" class="js-cover-art w-14 h-14 rounded-md object-cover shadow-md bg-dark-800 transition-transform duration-300 group-hover:scale-105">
+                <div class="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center rounded-md transition-opacity">
+                    <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
+                </div>
+            </div>
             <div class="flex-1 overflow-hidden">
-                <h4 class="js-track-title text-sm font-bold text-white truncate hover:underline cursor-pointer">Select track</h4>
-                <p class="js-track-artist text-xs text-gray-400 truncate hover:underline cursor-pointer mt-0.5">Artist</p>
+                <h4 class="js-track-title text-sm font-bold text-white truncate hover:underline cursor-pointer" onclick="toggleDesktopFullScreen()">Select track</h4>
+                <p class="js-track-artist text-xs text-gray-400 truncate hover:underline cursor-pointer mt-0.5" onclick="toggleDesktopFullScreen()">Artist</p>
             </div>
             <button onclick="toggleCurrentFavorite(event)" class="p-2 hover:bg-white/5 rounded-full transition-colors ml-2">
                 <i data-lucide="heart" id="desktop-like-icon" class="w-5 h-5 text-gray-400 hover:text-white"></i>
@@ -534,6 +573,7 @@
             isShuffle: false,
             isRepeat: false,
             isQueueOpen: false,
+            isDesktopFullScreen: false,
             audio: new Audio(),
             songToPlaylistId: null,
             isAdmin: false // Hidden by default
@@ -842,40 +882,64 @@
         function renderHome() {
             if(AppState.catalog.length === 0) return; // Prevent initial flash if loading
             
-            const trending = [...AppState.catalog].sort((a, b) => (AppState.trendingStats[b.id] || 0) - (AppState.trendingStats[a.id] || 0)).slice(0, 5);
-            const newReleases = [...AppState.catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 4);
+            const catalog = AppState.catalog;
+            const trending = [...catalog].sort((a, b) => (AppState.trendingStats[b.id] || 0) - (AppState.trendingStats[a.id] || 0)).slice(0, 10);
+            
+            // Daily top hits (mock 24 hours based on trending subset)
+            const dailyHits = [...trending].slice(0, 8); 
 
-            let favGenres = AppState.favorites.map(id => AppState.catalog.find(s=>s.id===id)?.genre).filter(Boolean);
-            let suggested = [];
-            if (favGenres.length > 0) {
-                const popularGenre = favGenres.sort((a,b) => favGenres.filter(v => v===a).length - favGenres.filter(v => v===b).length).pop();
-                suggested = AppState.catalog.filter(s => s.genre === popularGenre && !AppState.favorites.includes(s.id)).slice(0, 4);
-            }
-            if (suggested.length === 0) suggested = AppState.catalog.slice(0, 4);
+            const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
             // Calculate Personalized Auto-Playlist
             const topPlayedIds = Object.entries(AppState.playHistory || {})
                 .sort((a, b) => b[1] - a[1])
                 .map(e => e[0]);
                 
-            let yourMix = topPlayedIds.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
+            let yourMix = topPlayedIds.map(id => catalog.find(s => s.id === id)).filter(Boolean);
             
             // Pad the mix if user hasn't played enough songs yet
-            if (yourMix.length < 5) {
-                const fillers = [...AppState.catalog].sort(() => 0.5 - Math.random());
+            if (yourMix.length < 8) {
+                const fillers = [...catalog].sort(() => 0.5 - Math.random());
                 fillers.forEach(s => {
-                    if(!yourMix.find(m => m.id === s.id) && yourMix.length < 5) yourMix.push(s);
+                    if(!yourMix.find(m => m.id === s.id) && yourMix.length < 10) yourMix.push(s);
                 });
             } else {
-                yourMix = yourMix.slice(0, 5);
+                yourMix = yourMix.slice(0, 10);
             }
 
+            // Group by Genres dynamically
+            const genresMap = {};
+            catalog.forEach(song => {
+                if (song.genre) {
+                    if (!genresMap[song.genre]) genresMap[song.genre] = [];
+                    genresMap[song.genre].push(song);
+                }
+            });
+
+            // Build dynamic genre sections for every genre
+            const genreSectionsHTML = Object.keys(genresMap)
+                .sort() // Alphabetical sorting
+                .filter(genre => genresMap[genre].length > 0)
+                .map(genre => {
+                    const genreSongs = genresMap[genre].slice(0, 10);
+                    return `
+                        <section class="mt-8">
+                            <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
+                                ${genre}
+                            </h3>
+                            <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
+                                ${genreSongs.map((song, i) => SongCardLarge(song, genreSongs, i)).join('')}
+                            </div>
+                        </section>
+                    `;
+                }).join('');
+
             const html = `
-                <div class="relative w-full h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-10 group cursor-pointer" onclick="playQueue(${JSON.stringify(trending).replace(/"/g, '&quot;')}, 0)">
+                <div class="relative w-full h-48 md:h-64 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-8 group cursor-pointer shadow-xl" onclick="playQueue(${JSON.stringify(trending).replace(/"/g, '&quot;')}, 0)">
                     <div class="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-dark-900/60 to-transparent z-10 flex flex-col justify-center p-6 md:p-10">
-                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2">Featured Mix</span>
-                        <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">Trending Sounds</h2>
-                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2">The most played tracks across the Aura universe right now.</p>
+                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2 drop-shadow-md">Daily Update</span>
+                        <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">Global Top 50</h2>
+                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2 drop-shadow-md">The most played tracks across the Aura universe in the last 24 hours.</p>
                         <button class="mt-6 bg-brand-500 hover:bg-brand-400 text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
                             <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
                         </button>
@@ -884,36 +948,36 @@
                 </div>
 
                 <section>
-                    <h3 class="text-xl font-bold mb-5 tracking-tight">Trending Now</h3>
-                    <div class="flex overflow-x-auto hide-scrollbar gap-5 pb-4 snap-x">
-                        ${trending.map((song, i) => SongCardLarge(song, trending, i)).join('')}
+                    <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
+                        <i data-lucide="flame" class="text-brand-400 w-5 h-5"></i>
+                        Most Played in 24 Hours
+                    </h3>
+                    <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
+                        ${dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('')}
                     </div>
                 </section>
 
                 <section class="mt-8">
-                    <h3 class="text-xl font-bold mb-5 tracking-tight flex items-center gap-2">
+                    <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
                         <i data-lucide="sparkles" class="text-brand-400 w-5 h-5"></i>
                         Your Daily Mix
                     </h3>
-                    <div class="flex overflow-x-auto hide-scrollbar gap-5 pb-4 snap-x">
+                    <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
                         ${yourMix.map((song, i) => SongCardLarge(song, yourMix, i)).join('')}
                     </div>
                 </section>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mt-8">
-                    <section>
-                        <h3 class="text-xl font-bold mb-5 tracking-tight">Because You Liked</h3>
-                        <div class="space-y-2">
-                            ${suggested.map((song, i) => SongListItem(song, suggested, i)).join('')}
-                        </div>
-                    </section>
-                    <section>
-                        <h3 class="text-xl font-bold mb-5 tracking-tight">New Releases</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            ${newReleases.map((song, i) => SongCardSmall(song, newReleases, i)).join('')}
-                        </div>
-                    </section>
-                </div>
+                <section class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
+                        <i data-lucide="zap" class="text-brand-400 w-5 h-5"></i>
+                        New Releases
+                    </h3>
+                    <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
+                        ${newReleases.map((song, i) => SongCardLarge(song, newReleases, i)).join('')}
+                    </div>
+                </section>
+
+                ${genreSectionsHTML}
             `;
             els.contentArea.innerHTML = html;
         }
@@ -952,13 +1016,13 @@
         function renderFavorites() {
             const favSongs = AppState.favorites.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
             els.contentArea.innerHTML = `
-                <div class="flex flex-col md:flex-row md:items-end gap-6 mb-10 mt-4">
-                    <div class="w-40 h-40 md:w-56 md:h-56 bg-gradient-to-br from-brand-500 to-brand-900 rounded-xl shadow-2xl flex items-center justify-center shrink-0">
-                        <i data-lucide="heart" class="w-16 h-16 text-white fill-current"></i>
+                <div class="flex flex-col md:flex-row md:items-end gap-6 mb-8 mt-2">
+                    <div class="w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-brand-500 to-brand-900 rounded-xl shadow-2xl flex items-center justify-center shrink-0">
+                        <i data-lucide="heart" class="w-12 h-12 text-white fill-current"></i>
                     </div>
                     <div class="mt-2 md:mt-0 flex-1 min-w-0">
                         <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
-                        <h2 class="text-4xl md:text-6xl font-black mb-3 tracking-tight truncate">Liked Songs</h2>
+                        <h2 class="text-3xl md:text-5xl font-black mb-3 tracking-tight truncate">Liked Songs</h2>
                         <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
                             <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
                             <span class="truncate">${AppState.user.displayName || 'You'}</span>
@@ -966,8 +1030,8 @@
                             <span class="shrink-0">${favSongs.length} songs</span>
                         </div>
                         ${favSongs.length > 0 ? `
-                        <button onclick="playQueue(${JSON.stringify(favSongs).replace(/"/g, '&quot;')}, 0)" class="mt-6 bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
-                            <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
+                        <button onclick="playQueue(${JSON.stringify(favSongs).replace(/"/g, '&quot;')}, 0)" class="mt-6 bg-brand-500 hover:scale-105 active:scale-95 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
+                            <i data-lucide="play" class="w-5 h-5 fill-current ml-1"></i>
                         </button>` : ''}
                     </div>
                 </div>
@@ -984,13 +1048,13 @@
             const pSongs = playlist.songs.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
             
             els.contentArea.innerHTML = `
-                <div class="flex flex-col md:flex-row md:items-end gap-6 mb-10 mt-4">
-                    <div class="w-40 h-40 md:w-56 md:h-56 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0">
-                        <i data-lucide="music" class="w-16 h-16 text-gray-600"></i>
+                <div class="flex flex-col md:flex-row md:items-end gap-6 mb-8 mt-2">
+                    <div class="w-32 h-32 md:w-40 md:h-40 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0">
+                        <i data-lucide="music" class="w-12 h-12 text-gray-600"></i>
                     </div>
                     <div class="mt-2 md:mt-0 flex-1 min-w-0">
                         <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
-                        <h2 class="text-4xl md:text-6xl font-black mb-3 tracking-tight truncate" title="${playlist.name}">${playlist.name}</h2>
+                        <h2 class="text-3xl md:text-5xl font-black mb-3 tracking-tight truncate" title="${playlist.name}">${playlist.name}</h2>
                         <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
                             <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
                             <span class="truncate">${AppState.user.displayName || 'You'}</span>
@@ -999,11 +1063,11 @@
                         </div>
                         <div class="flex items-center gap-4 mt-6">
                             ${pSongs.length > 0 ? `
-                            <button onclick="playQueue(${JSON.stringify(pSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
-                                <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
+                            <button onclick="playQueue(${JSON.stringify(pSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
+                                <i data-lucide="play" class="w-5 h-5 fill-current ml-1"></i>
                             </button>` : ''}
                             <button onclick="deletePlaylist('${playlist.id}')" class="p-3 text-gray-400 hover:text-red-500 rounded-full transition-colors" title="Delete Playlist">
-                                <i data-lucide="trash-2" class="w-6 h-6"></i>
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
                             </button>
                         </div>
                     </div>
@@ -1267,18 +1331,18 @@
         };
 
         const SongCardLarge = (song, queue, index) => `
-            <div class="min-w-[150px] md:min-w-[180px] snap-center group cursor-pointer" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
-                <div class="relative overflow-hidden rounded-xl mb-4 shadow-lg bg-dark-800 aspect-square">
+            <div class="min-w-[130px] w-[130px] md:min-w-[160px] md:w-[160px] snap-center group cursor-pointer" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
+                <div class="relative overflow-hidden rounded-xl mb-3 shadow-lg bg-dark-800 aspect-square">
                     ${song.badge ? `<div class="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider z-10 shadow-md">${song.badge}</div>` : ''}
                     <img src="${song.cover}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <div class="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center shadow-lg translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                            <i data-lucide="play" class="w-6 h-6 text-white fill-current ml-1"></i>
+                        <div class="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center shadow-lg translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                            <i data-lucide="play" class="w-5 h-5 text-white fill-current ml-1"></i>
                         </div>
                     </div>
                 </div>
-                <h4 class="font-bold text-sm md:text-base text-white truncate mb-1 transition-colors hover:text-brand-400">${song.title}</h4>
-                <p class="text-xs md:text-sm text-gray-400 truncate font-medium">${song.artist}</p>
+                <h4 class="font-bold text-sm text-white truncate mb-1 transition-colors hover:text-brand-400">${song.title}</h4>
+                <p class="text-[11px] md:text-xs text-gray-400 truncate font-medium">${song.artist}</p>
             </div>
         `;
 
@@ -1541,6 +1605,9 @@
             const mfpBg = document.getElementById('mfp-bg');
             mfpBg.style.background = `linear-gradient(to bottom, ${song.color}80, #121212 80%)`;
 
+            const dfsBg = document.getElementById('dfs-bg');
+            if(dfsBg) dfsBg.style.backgroundImage = `url(${song.cover})`;
+
             let contextText = "PLAYING FROM AURA";
             if(AppState.currentView === 'playlist') contextText = "PLAYING FROM PLAYLIST";
             else if(AppState.currentView === 'favorites') contextText = "PLAYING FROM LIKED SONGS";
@@ -1579,15 +1646,15 @@
             const song = AppState.queue[AppState.currentIndex];
             const isFav = song && AppState.favorites.includes(song.id);
             
-            ['desktop-like-icon', 'mini-like-icon', 'mfp-like-icon'].forEach(id => {
+            ['desktop-like-icon', 'mini-like-icon', 'mfp-like-icon', 'dfs-like-icon'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) {
                     if (isFav) {
                         el.classList.add('text-brand-500', 'fill-current');
-                        el.classList.remove('text-gray-400', 'text-white/70');
+                        el.classList.remove('text-gray-400', 'text-white/70', 'text-white');
                     } else {
                         el.classList.remove('text-brand-500', 'fill-current');
-                        if (id === 'mfp-like-icon') el.classList.add('text-white/70');
+                        if (id === 'mfp-like-icon' || id === 'dfs-like-icon') el.classList.add('text-white');
                         else el.classList.add('text-gray-400');
                     }
                 }
@@ -1705,6 +1772,18 @@
 
         window.collapsePlayer = () => {
             els.mobileFullPlayer.style.transform = 'translateY(100%)';
+        };
+
+        // --- Desktop Full Screen Overlay Toggle ---
+        window.toggleDesktopFullScreen = () => {
+            if (AppState.queue.length === 0) return; // Prevent opening if no song loaded
+            AppState.isDesktopFullScreen = !AppState.isDesktopFullScreen;
+            const view = document.getElementById('desktop-fullscreen-view');
+            if (AppState.isDesktopFullScreen) {
+                view.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                view.classList.add('opacity-0', 'pointer-events-none');
+            }
         };
 
         // Smooth Swipe Down to Dismiss & Left/Right Skip logic
