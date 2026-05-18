@@ -82,7 +82,7 @@
         .desktop-slider::-webkit-slider-runnable-track {
             width: 100%; height: 4px;
             cursor: pointer;
-            background: #3f3f46;
+            background: rgba(255,255,255,0.2);
             border-radius: 2px;
         }
         .desktop-slider:focus { outline: none; }
@@ -103,6 +103,27 @@
             width: 100%; height: 100%; background: transparent;
         }
         
+        /* Smooth View Transitions */
+        #content-area {
+            transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
+        }
+        .fade-out { opacity: 0; transform: translateY(10px); }
+
+        /* Animated Playing Equalizer */
+        .eq-bar {
+            width: 3px;
+            background-color: #8b5cf6;
+            border-radius: 2px;
+            animation: eq 1s ease-in-out infinite alternate;
+        }
+        .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+        .eq-bar:nth-child(4) { animation-delay: 0.6s; }
+        @keyframes eq {
+            0% { height: 4px; }
+            100% { height: 16px; }
+        }
+
         .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -112,6 +133,9 @@
 <body class="flex flex-col h-[100dvh] antialiased select-none">
     
     <div id="bg-glow"></div>
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- Auth Screen -->
     <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-dark-900/95 backdrop-blur-xl">
@@ -139,8 +163,11 @@
                 </button>
             </form>
 
-            <div class="mt-6 text-center relative z-10">
-                <button id="toggle-auth-mode" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+            <div class="mt-4 text-center relative z-10 flex flex-col gap-2">
+                <button type="button" id="toggle-forgot-password" class="text-xs font-medium text-brand-400 hover:text-brand-300 transition-colors">
+                    Forgot Password?
+                </button>
+                <button type="button" id="toggle-auth-mode" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">
                     Need an account? Sign Up
                 </button>
             </div>
@@ -163,77 +190,120 @@
         </div>
     </div>
 
-    <!-- Main App Container -->
-    <div id="main-app" class="flex flex-1 w-full h-full hidden overflow-hidden">
-        
-        <!-- Sidebar (Desktop) -->
-        <aside class="w-64 glass-panel border-r border-white/5 hidden md:flex flex-col z-10 h-full bg-dark-900/50">
-            <div class="p-6 flex items-center gap-3">
-                <i data-lucide="audio-waveform" class="text-brand-500 w-8 h-8"></i>
-                <span class="text-2xl font-extrabold tracking-tight">Aura</span>
+    <!-- Forgot Password Screen -->
+    <div id="forgot-password-screen" class="fixed inset-0 z-[55] flex items-center justify-center bg-dark-900/95 backdrop-blur-xl hidden">
+        <div class="glass-panel p-8 rounded-3xl w-[90%] max-w-md relative overflow-hidden shadow-2xl">
+            <div class="absolute -top-20 -left-20 w-48 h-48 bg-brand-600 rounded-full blur-[80px] opacity-30"></div>
+            
+            <div class="mb-8 mt-2 relative z-10">
+                <button type="button" id="close-forgot-password" class="absolute -top-4 -left-4 p-2 text-gray-400 hover:text-white transition-colors"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                <h2 class="text-2xl font-extrabold tracking-tight text-white text-center mt-6">Reset Password</h2>
+                <p class="text-gray-400 text-sm font-medium text-center mt-2 px-4">Enter your email and we'll send you a secure link to reset your password.</p>
             </div>
 
-            <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto hide-scrollbar">
-                <button onclick="navigate('home')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all active-nav">
-                    <i data-lucide="home" class="w-6 h-6"></i> Home
-                </button>
-                <button onclick="navigate('search')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
-                    <i data-lucide="search" class="w-6 h-6"></i> Search
-                </button>
-                <button onclick="navigate('favorites')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
-                    <i data-lucide="heart" class="w-6 h-6"></i> Library
-                </button>
+            <div id="reset-msg" class="hidden mb-6 p-4 rounded-xl text-center font-medium text-sm"></div>
 
-                <div class="pt-6 pb-2 px-4 flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
-                    Playlists
-                    <button onclick="createNewPlaylist()" class="hover:text-white transition-colors p-1"><i data-lucide="plus" class="w-4 h-4"></i></button>
-                </div>
-                <div id="sidebar-playlists" class="space-y-1">
-                    <!-- Dynamic Playlists -->
-                </div>
-            </nav>
-
-            <div class="p-4 border-t border-white/5">
-                <button onclick="navigate('settings')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all">
-                    <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full object-cover bg-dark-800">
-                    <div class="text-left flex-1 overflow-hidden">
-                        <div id="user-name" class="text-sm font-semibold truncate text-white">User</div>
-                        <div class="text-[11px] truncate">Settings</div>
-                    </div>
+            <form id="forgot-password-form" class="space-y-4 relative z-10">
+                <input type="email" id="reset-email" placeholder="Your Email Address" required class="w-full bg-dark-800/50 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:bg-dark-800 transition-all">
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                    Send Reset Link
                 </button>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="flex-1 relative overflow-y-auto h-full scroll-smooth" id="scroll-main">
-            <!-- Mobile Header -->
-            <header class="sticky top-0 z-20 bg-gradient-to-b from-dark-900 via-dark-900/90 to-transparent px-5 pt-12 pb-4 flex justify-between items-center md:hidden">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center shadow-lg shadow-brand-500/30">
-                        <i data-lucide="audio-waveform" class="text-white w-4 h-4"></i>
-                    </div>
-                    <span class="text-xl font-bold tracking-tight">Aura</span>
-                </div>
-                <button onclick="navigate('settings')" class="hover:scale-105 transition-transform">
-                    <img id="mobile-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full border border-white/10 shadow-lg bg-dark-800 object-cover">
-                </button>
-            </header>
-
-            <div id="content-area" class="p-5 md:p-10 pb-40 md:pb-32 max-w-[1600px] mx-auto space-y-10">
-                <!-- Views injected here by JS -->
-            </div>
-        </main>
+            </form>
+        </div>
     </div>
+
+    <!-- Main App Container -->
+    <div id="main-app" class="flex flex-col flex-1 w-full h-full hidden overflow-hidden">
+        
+        <!-- Top Section Wrapper -->
+        <div class="flex flex-1 w-full h-full overflow-hidden relative">
+            
+            <!-- Sidebar (Desktop) -->
+            <aside class="w-64 glass-panel border-r border-white/5 hidden md:flex flex-col z-10 h-full bg-dark-900/50 shrink-0">
+                <div class="p-6 flex items-center gap-3">
+                    <i data-lucide="audio-waveform" class="text-brand-500 w-8 h-8"></i>
+                    <span class="text-2xl font-extrabold tracking-tight">Aura</span>
+                </div>
+
+                <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto hide-scrollbar">
+                    <button onclick="navigate('home')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all active-nav">
+                        <i data-lucide="home" class="w-6 h-6"></i> Home
+                    </button>
+                    <button onclick="navigate('search')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <i data-lucide="search" class="w-6 h-6"></i> Search
+                    </button>
+                    <button onclick="navigate('favorites')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <div class="w-6 h-6 bg-gradient-to-br from-brand-500 to-brand-800 rounded flex items-center justify-center shrink-0 shadow-sm shadow-brand-500/20">
+                            <i data-lucide="heart" class="w-3.5 h-3.5 text-white fill-current"></i>
+                        </div>
+                        Liked Songs
+                    </button>
+
+                    <div class="pt-6 pb-2 px-4 flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">
+                        Playlists
+                        <button onclick="createNewPlaylist()" class="hover:text-white transition-colors p-1" title="Create Playlist"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                    <div id="sidebar-playlists" class="space-y-1">
+                        <!-- Dynamic Playlists -->
+                    </div>
+                </nav>
+
+                <div class="p-4 border-t border-white/5">
+                    <button onclick="navigate('settings')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full object-cover bg-dark-800">
+                        <div class="text-left flex-1 overflow-hidden">
+                            <div id="user-name" class="text-sm font-semibold truncate text-white">User</div>
+                            <div class="text-[11px] truncate">Settings</div>
+                        </div>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 relative overflow-y-auto h-full scroll-smooth" id="scroll-main">
+                <!-- Mobile Header -->
+                <header class="sticky top-0 z-20 bg-gradient-to-b from-dark-900 via-dark-900/95 to-transparent px-5 pt-12 pb-4 flex justify-between items-center md:hidden backdrop-blur-sm">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center shadow-lg shadow-brand-500/30">
+                            <i data-lucide="audio-waveform" class="text-white w-4 h-4"></i>
+                        </div>
+                        <span class="text-xl font-bold tracking-tight">Aura</span>
+                    </div>
+                    <button onclick="navigate('settings')" class="hover:scale-105 transition-transform">
+                        <img id="mobile-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full border border-white/10 shadow-lg bg-dark-800 object-cover">
+                    </button>
+                </header>
+
+                <div id="content-area" class="p-5 md:p-10 pb-40 md:pb-10 max-w-[1600px] mx-auto space-y-10">
+                    <!-- Views injected here by JS -->
+                </div>
+            </main>
+
+            <!-- Slide-out Queue Panel -->
+            <div id="queue-panel" class="absolute right-0 top-0 bottom-0 w-full md:w-80 bg-dark-900/95 backdrop-blur-2xl border-l border-white/5 transform translate-x-full transition-transform duration-300 z-30 flex flex-col shadow-2xl">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center shrink-0 bg-dark-900/50">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <i data-lucide="list-music" class="w-5 h-5 text-brand-400"></i>
+                        Up Next
+                    </h3>
+                    <button onclick="toggleQueue()" class="p-2 text-gray-400 hover:text-white bg-white/5 rounded-full"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <div id="queue-content" class="p-4 overflow-y-auto flex-1 space-y-2 hide-scrollbar">
+                    <!-- Queue items injected here -->
+                </div>
+            </div>
+
+        </div> <!-- End Top Section Wrapper -->
 
     <!-- ========================================== -->
     <!-- PLAYERS ARCHITECTURE (Mobile & Desktop)    -->
     <!-- ========================================== -->
 
     <!-- 1. Mobile Mini Player (Floating above Nav) -->
-    <div id="mobile-mini-player" class="player-hidden fixed bottom-[66px] left-2 right-2 bg-dark-800 rounded-xl h-[56px] z-30 flex items-center px-2 shadow-2xl md:hidden cursor-pointer transition-transform overflow-hidden group" onclick="expandPlayer()">
+    <div id="mobile-mini-player" class="player-hidden fixed bottom-[66px] left-2 right-2 bg-dark-800/90 backdrop-blur-xl rounded-xl h-[56px] z-30 flex items-center px-2 shadow-2xl md:hidden cursor-pointer transition-transform overflow-hidden group border border-white/5" onclick="expandPlayer()">
         <!-- Progress Bar Line -->
         <div class="absolute bottom-0 left-0 w-full h-[2px] bg-white/10 rounded-b-xl overflow-hidden">
-            <div id="mini-progress-fill" class="h-full bg-white rounded-r-full transition-all duration-100 ease-linear" style="width: 0%;"></div>
+            <div id="mini-progress-fill" class="h-full bg-brand-500 rounded-r-full transition-all duration-100 ease-linear shadow-[0_0_10px_rgba(139,92,246,0.8)]" style="width: 0%;"></div>
         </div>
         
         <img src="" class="js-cover-art w-10 h-10 rounded-md object-cover shadow-md bg-dark-700 ml-1">
@@ -306,16 +376,28 @@
                 <button onclick="toggleRepeat(event)" class="p-2"><i data-lucide="repeat" id="mfp-repeat" class="w-6 h-6 text-white/70"></i></button>
             </div>
 
-            <!-- Footer Actions -->
-            <div class="flex justify-between items-center text-white/60 mt-auto pt-2 shrink-0 pb-safe">
-                <button class="p-2 hover:text-white transition-colors"><i data-lucide="monitor-speaker" class="w-6 h-6"></i></button>
-                <button class="p-2 hover:text-white transition-colors"><i data-lucide="share-2" class="w-6 h-6"></i></button>
+            <!-- Footer Actions & Volume -->
+            <div class="flex flex-col gap-4 mt-auto pt-2 shrink-0 pb-safe">
+                <!-- Mobile Volume Control -->
+                <div class="flex items-center gap-3 w-full px-2">
+                    <i data-lucide="volume-x" class="w-4 h-4 text-white/40"></i>
+                    <input type="range" min="0" max="1" step="0.01" value="1" class="desktop-slider flex-1" oninput="setVolume(event)">
+                    <i data-lucide="volume-2" class="w-4 h-4 text-white/60"></i>
+                </div>
+                <!-- Bottom Icons -->
+                <div class="flex justify-between items-center text-white/60 px-2">
+                    <button class="p-2 hover:text-white transition-colors"><i data-lucide="monitor-speaker" class="w-5 h-5"></i></button>
+                    <button onclick="toggleQueue(); collapsePlayer()" class="p-2 hover:text-white transition-colors relative">
+                        <i data-lucide="list-music" class="w-5 h-5"></i>
+                    </button>
+                    <button class="p-2 hover:text-white transition-colors"><i data-lucide="share-2" class="w-5 h-5"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 3. Desktop Player Bar -->
-    <div id="desktop-player" class="player-hidden fixed bottom-0 left-0 right-0 bg-dark-900 border-t border-white/5 h-[90px] z-50 flex items-center justify-between px-6 transition-all duration-300 hidden md:flex backdrop-blur-3xl bg-opacity-95">
+    <div id="desktop-player" class="player-hidden shrink-0 w-full bg-dark-900 border-t border-white/5 h-[90px] z-50 items-center justify-between px-6 transition-all duration-300 hidden md:flex backdrop-blur-3xl bg-opacity-95 relative">
         
         <!-- Left: Info -->
         <div class="flex items-center gap-4 w-1/3">
@@ -334,7 +416,7 @@
             <div class="flex items-center gap-6">
                 <button onclick="toggleShuffle(event)" class="text-gray-400 hover:text-white transition-colors" id="desktop-shuffle"><i data-lucide="shuffle" class="w-[18px] h-[18px]"></i></button>
                 <button onclick="playPrev(event)" class="text-gray-300 hover:text-white transition-colors"><i data-lucide="skip-back" class="w-5 h-5 fill-current"></i></button>
-                <button onclick="togglePlay(event)" class="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg">
+                <button onclick="togglePlay(event)" class="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-white/10">
                     <i data-lucide="play" id="desktop-play-icon" class="w-[18px] h-[18px] text-black fill-current ml-0.5"></i>
                 </button>
                 <button onclick="playNext(event)" class="text-gray-300 hover:text-white transition-colors"><i data-lucide="skip-forward" class="w-5 h-5 fill-current"></i></button>
@@ -349,8 +431,8 @@
 
         <!-- Right: Extras -->
         <div class="w-1/3 flex justify-end items-center gap-4">
-            <button onclick="showQueue(event)" class="text-gray-400 hover:text-white p-2"><i data-lucide="list-music" class="w-4 h-4"></i></button>
-            <button class="text-gray-400 hover:text-white p-2"><i data-lucide="monitor-speaker" class="w-4 h-4"></i></button>
+            <button onclick="toggleQueue()" class="text-gray-400 hover:text-white p-2 transition-colors hover:bg-white/5 rounded-full" title="Queue"><i data-lucide="list-music" class="w-5 h-5"></i></button>
+            <button class="text-gray-400 hover:text-white p-2 transition-colors hover:bg-white/5 rounded-full"><i data-lucide="monitor-speaker" class="w-5 h-5"></i></button>
             <div class="flex items-center gap-2 w-28 group ml-2">
                 <i data-lucide="volume-2" class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"></i>
                 <input type="range" id="volume-bar" min="0" max="1" step="0.01" value="1" class="desktop-slider w-full" oninput="setVolume(event)">
@@ -369,12 +451,12 @@
             <span class="text-[10px] font-medium">Search</span>
         </button>
         <button onclick="navigate('favorites')" class="nav-btn flex flex-col items-center gap-1 p-2 w-16 text-gray-400 hover:text-white transition-colors">
-            <i data-lucide="library" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">Library</span>
+            <i data-lucide="heart" class="w-6 h-6"></i>
+            <span class="text-[10px] font-medium">Liked</span>
         </button>
     </nav>
 
-    <!-- Modal for Playlists -->
+    <!-- Modal for Saving to Playlists -->
     <div id="playlist-modal" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-dark-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-white/10">
             <h3 class="text-xl font-bold mb-5" id="modal-title">Save to Playlist</h3>
@@ -382,20 +464,32 @@
                 <!-- Playlist options injected here -->
             </div>
             <div class="flex gap-2">
-                <input type="text" id="new-playlist-input" placeholder="New playlist name..." class="flex-1 bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 transition-colors">
+                <input type="text" id="new-playlist-input" placeholder="New playlist name..." class="flex-1 bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
                 <button onclick="handleCreatePlaylist()" class="bg-white text-black px-5 py-3 rounded-xl text-sm font-bold hover:scale-105 transition-transform">Create</button>
             </div>
             <button onclick="closeModal()" class="mt-4 w-full py-3 text-gray-400 hover:text-white text-sm font-semibold transition-colors">Cancel</button>
         </div>
     </div>
 
+    <!-- Modal for Creating a New Standalone Playlist -->
+    <div id="create-playlist-modal" class="fixed inset-0 z-[75] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-white/10">
+            <h3 class="text-xl font-bold mb-5 text-white">Name your playlist</h3>
+            <input type="text" id="standalone-playlist-input" placeholder="My Awesome Playlist..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-4 text-sm focus:outline-none focus:border-brand-500 transition-colors mb-6 text-white">
+            <div class="flex gap-3">
+                <button onclick="closeCreatePlaylistModal()" class="flex-1 py-3.5 text-gray-400 hover:text-white text-sm font-semibold transition-colors bg-dark-700 hover:bg-dark-600 rounded-xl">Cancel</button>
+                <button onclick="submitNewPlaylist()" class="flex-1 bg-brand-600 text-white px-5 py-3.5 rounded-xl text-sm font-bold hover:bg-brand-500 transition-colors">Create</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, deleteUser, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, updateDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Configuration (Preserved completely as requested)
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAGmSHiSFvlOIk5woSsbBLI5rndASromyg",
             authDomain: "dmin-dbe58.firebaseapp.com",
@@ -429,6 +523,7 @@
             user: null,
             favorites: [],
             playlists: [],
+            playHistory: {},
             trendingStats: {},
             currentView: 'home',
             
@@ -437,6 +532,7 @@
             isPlaying: false,
             isShuffle: false,
             isRepeat: false,
+            isQueueOpen: false,
             audio: new Audio(),
             songToPlaylistId: null
         };
@@ -445,26 +541,53 @@
         AppState.audio.volume = 1;
         AppState.audio.addEventListener('timeupdate', updateProgressUI);
         AppState.audio.addEventListener('ended', handleSongEnd);
-        AppState.audio.addEventListener('play', () => { AppState.isPlaying = true; updatePlayButtonUI(); });
-        AppState.audio.addEventListener('pause', () => { AppState.isPlaying = false; updatePlayButtonUI(); });
+        AppState.audio.addEventListener('play', () => { AppState.isPlaying = true; updatePlayButtonUI(); renderActiveStates(); });
+        AppState.audio.addEventListener('pause', () => { AppState.isPlaying = false; updatePlayButtonUI(); renderActiveStates(); });
 
         // --- DOM Elements ---
         const els = {
             authScreen: document.getElementById('auth-screen'),
+            forgotPasswordScreen: document.getElementById('forgot-password-screen'),
             mainApp: document.getElementById('main-app'),
             contentArea: document.getElementById('content-area'),
             desktopPlayer: document.getElementById('desktop-player'),
             mobileMiniPlayer: document.getElementById('mobile-mini-player'),
             mobileFullPlayer: document.getElementById('mobile-full-player'),
+            queuePanel: document.getElementById('queue-panel'),
+            queueContent: document.getElementById('queue-content'),
             authForm: document.getElementById('auth-form'),
             authError: document.getElementById('auth-error'),
             googleBtn: document.getElementById('google-signin-btn'),
             toggleAuthBtn: document.getElementById('toggle-auth-mode'),
+            toggleForgotBtn: document.getElementById('toggle-forgot-password'),
+            closeForgotBtn: document.getElementById('close-forgot-password'),
+            forgotForm: document.getElementById('forgot-password-form'),
+            resetMsg: document.getElementById('reset-msg'),
             sidebarPlaylists: document.getElementById('sidebar-playlists'),
-            playlistModal: document.getElementById('playlist-modal')
+            playlistModal: document.getElementById('playlist-modal'),
+            createPlaylistModal: document.getElementById('create-playlist-modal')
         };
 
         let isLoginMode = true;
+
+        // --- Global Helpers ---
+        window.showToast = (msg) => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-dark-800 border border-white/10 text-white px-5 py-3 rounded-full shadow-2xl transform transition-all duration-300 -translate-y-10 opacity-0 text-sm font-medium flex items-center gap-2';
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-brand-400"></i> ${msg}`;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('-translate-y-10', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('-translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
 
         // --- Authentication Flow ---
         els.toggleAuthBtn.addEventListener('click', () => {
@@ -482,11 +605,19 @@
 
             try {
                 if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    const cred = await signInWithEmailAndPassword(auth, email, password);
+                    if (!cred.user.emailVerified) {
+                        await signOut(auth);
+                        showAuthError("Please verify your email address. Check your inbox for the verification link.");
+                    }
                 } else {
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
                     await sendEmailVerification(cred.user);
-                    alert("Account created! Please check your email for a verification link.");
+                    await signOut(auth);
+                    alert("Account created! A verification link has been sent to your email. Please verify before signing in.");
+                    isLoginMode = true;
+                    document.getElementById('auth-submit').innerText = 'Sign In';
+                    els.toggleAuthBtn.innerText = 'Need an account? Sign Up';
                 }
             } catch (err) {
                 showAuthError(err.message);
@@ -508,8 +639,36 @@
             els.authError.classList.remove('hidden');
         }
 
+        // Forgot Password Flow
+        els.toggleForgotBtn.addEventListener('click', () => {
+            els.forgotPasswordScreen.classList.remove('hidden');
+            els.resetMsg.classList.add('hidden');
+        });
+
+        els.closeForgotBtn.addEventListener('click', () => {
+            els.forgotPasswordScreen.classList.add('hidden');
+        });
+
+        els.forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+            els.resetMsg.classList.remove('hidden', 'bg-green-500/10', 'text-green-400', 'bg-red-500/10', 'text-red-400', 'border-green-500/20', 'border-red-500/20', 'border');
+            
+            try {
+                await sendPasswordResetEmail(auth, email);
+                els.resetMsg.innerText = "Success! Check your email for the secure link to set your new password.";
+                els.resetMsg.classList.add('bg-green-500/10', 'text-green-400', 'border', 'border-green-500/20');
+                els.resetMsg.classList.remove('hidden');
+                setTimeout(() => els.forgotPasswordScreen.classList.add('hidden'), 4000);
+            } catch(err) {
+                els.resetMsg.innerText = err.message;
+                els.resetMsg.classList.add('bg-red-500/10', 'text-red-400', 'border', 'border-red-500/20');
+                els.resetMsg.classList.remove('hidden');
+            }
+        });
+
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
+            if (user && (user.emailVerified || !user.providerData.some(p => p.providerId === 'password'))) {
                 AppState.user = user;
                 els.authScreen.classList.add('hidden');
                 els.mainApp.classList.remove('hidden');
@@ -549,12 +708,18 @@
                     const data = docSnap.data();
                     AppState.favorites = data.favorites || [];
                     AppState.playlists = data.playlists || [];
+                    AppState.playHistory = data.playHistory || {};
                 } else {
-                    setDoc(userRef, { favorites: [], playlists: [] });
+                    setDoc(userRef, { favorites: [], playlists: [], playHistory: {} });
                 }
                 renderSidebarPlaylists();
-                if(AppState.currentView === 'favorites' || AppState.currentView.startsWith('playlist')) navigate(AppState.currentView);
+                
+                // Re-render current view if needed
+                if(AppState.currentView === 'favorites') renderFavorites();
+                else if (AppState.currentView === 'playlist') renderPlaylistView(document.querySelector('h2')?.innerText || '');
+
                 updateLikeButtonUI();
+                renderActiveStates();
             });
         }
 
@@ -588,11 +753,23 @@
                     await updateDoc(trendingRef, { [`playCounts.${songId}`]: increment(1) });
                 }
             } catch (err) {}
+            
+            // Record User specific history
+            const userRef = doc(db, 'artifacts', AppID, 'users', AppState.user.uid, 'profile', 'data');
+            try {
+                await setDoc(userRef, {
+                    playHistory: { [songId]: increment(1) }
+                }, { merge: true });
+                
+                AppState.playHistory[songId] = (AppState.playHistory[songId] || 0) + 1;
+            } catch (err) {}
         }
 
         // --- Navigation & Rendering ---
         window.navigate = (view, data = null) => {
             AppState.currentView = view;
+            
+            // UI Selection states
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('text-white', 'bg-white/5');
                 btn.classList.add('text-gray-400');
@@ -600,17 +777,27 @@
             event?.currentTarget?.classList?.add('text-white');
             if(window.innerWidth >= 768) event?.currentTarget?.classList?.add('bg-white/5');
 
-            els.contentArea.innerHTML = '';
-            document.getElementById('scroll-main').scrollTo(0,0);
+            // Smooth Transition Out
+            els.contentArea.classList.add('fade-out');
+            
+            setTimeout(() => {
+                els.contentArea.innerHTML = '';
+                document.getElementById('scroll-main').scrollTo(0,0);
 
-            switch (view) {
-                case 'home': renderHome(); break;
-                case 'search': renderSearch(); break;
-                case 'favorites': renderFavorites(); break;
-                case 'playlist': renderPlaylistView(data); break;
-                case 'settings': renderSettings(); break;
-            }
-            lucide.createIcons();
+                switch (view) {
+                    case 'home': renderHome(); break;
+                    case 'search': renderSearch(); break;
+                    case 'favorites': renderFavorites(); break;
+                    case 'playlist': renderPlaylistView(data); break;
+                    case 'settings': renderSettings(); break;
+                }
+                
+                lucide.createIcons();
+                renderActiveStates();
+                
+                // Transition In
+                els.contentArea.classList.remove('fade-out');
+            }, 200); // matches CSS duration
         };
 
         function renderHome() {
@@ -624,6 +811,23 @@
                 suggested = mockSongs.filter(s => s.genre === popularGenre && !AppState.favorites.includes(s.id)).slice(0, 4);
             }
             if (suggested.length === 0) suggested = mockSongs.slice(3, 7);
+
+            // Calculate Personalized Auto-Playlist
+            const topPlayedIds = Object.entries(AppState.playHistory || {})
+                .sort((a, b) => b[1] - a[1])
+                .map(e => e[0]);
+                
+            let yourMix = topPlayedIds.map(id => mockSongs.find(s => s.id === id)).filter(Boolean);
+            
+            // Pad the mix if user hasn't played enough songs yet
+            if (yourMix.length < 5) {
+                const fillers = [...mockSongs].sort(() => 0.5 - Math.random());
+                fillers.forEach(s => {
+                    if(!yourMix.find(m => m.id === s.id) && yourMix.length < 5) yourMix.push(s);
+                });
+            } else {
+                yourMix = yourMix.slice(0, 5);
+            }
 
             const html = `
                 <div class="relative w-full h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-10 group cursor-pointer" onclick="playQueue(${JSON.stringify(trending).replace(/"/g, '&quot;')}, 0)">
@@ -645,9 +849,19 @@
                     </div>
                 </section>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mt-4">
+                <section class="mt-8">
+                    <h3 class="text-xl font-bold mb-5 tracking-tight flex items-center gap-2">
+                        <i data-lucide="sparkles" class="text-brand-400 w-5 h-5"></i>
+                        Your Daily Mix
+                    </h3>
+                    <div class="flex overflow-x-auto hide-scrollbar gap-5 pb-4 snap-x">
+                        ${yourMix.map((song, i) => SongCardLarge(song, yourMix, i)).join('')}
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mt-8">
                     <section>
-                        <h3 class="text-xl font-bold mb-5 tracking-tight">Made For You</h3>
+                        <h3 class="text-xl font-bold mb-5 tracking-tight">Because You Liked</h3>
                         <div class="space-y-2">
                             ${suggested.map((song, i) => SongListItem(song, suggested, i)).join('')}
                         </div>
@@ -665,10 +879,10 @@
 
         function renderSearch() {
             els.contentArea.innerHTML = `
-                <div class="sticky top-12 md:top-0 z-10 bg-dark-900/95 backdrop-blur-xl pt-2 pb-6 -mx-5 px-5 md:mx-0 md:px-0">
+                <div class="sticky top-12 md:top-0 z-10 bg-dark-900/95 backdrop-blur-xl pt-2 pb-6 -mx-5 px-5 md:mx-0 md:px-0 transition-all duration-300">
                     <div class="relative w-full max-w-3xl mx-auto">
                         <i data-lucide="search" class="absolute left-5 top-4 text-gray-400 w-6 h-6"></i>
-                        <input type="text" id="search-input" placeholder="What do you want to listen to?" class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-white/30 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleSearch(event)">
+                        <input type="text" id="search-input" placeholder="What do you want to listen to?" class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-brand-500 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleSearch(event)">
                     </div>
                 </div>
                 <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -691,23 +905,24 @@
             }
             resultsContainer.innerHTML = results.map((song, i) => SongCardSmall(song, results, i)).join('');
             lucide.createIcons();
+            renderActiveStates();
         };
 
         function renderFavorites() {
             const favSongs = AppState.favorites.map(id => mockSongs.find(s => s.id === id)).filter(Boolean);
             els.contentArea.innerHTML = `
                 <div class="flex flex-col md:flex-row md:items-end gap-6 mb-10 mt-4">
-                    <div class="w-40 h-40 md:w-56 md:h-56 bg-gradient-to-br from-brand-500 to-brand-900 rounded-xl shadow-2xl flex items-center justify-center">
+                    <div class="w-40 h-40 md:w-56 md:h-56 bg-gradient-to-br from-brand-500 to-brand-900 rounded-xl shadow-2xl flex items-center justify-center shrink-0">
                         <i data-lucide="heart" class="w-16 h-16 text-white fill-current"></i>
                     </div>
-                    <div class="mt-2 md:mt-0">
+                    <div class="mt-2 md:mt-0 flex-1 min-w-0">
                         <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
-                        <h2 class="text-4xl md:text-6xl font-black mb-3 tracking-tight">Liked Songs</h2>
-                        <div class="flex items-center gap-2 text-sm text-gray-300 font-medium">
-                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full">
-                            <span>${AppState.user.displayName || 'You'}</span>
-                            <span class="text-gray-500">•</span>
-                            <span>${favSongs.length} songs</span>
+                        <h2 class="text-4xl md:text-6xl font-black mb-3 tracking-tight truncate">Liked Songs</h2>
+                        <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
+                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
+                            <span class="truncate">${AppState.user.displayName || 'You'}</span>
+                            <span class="text-gray-500 shrink-0">•</span>
+                            <span class="shrink-0">${favSongs.length} songs</span>
                         </div>
                         ${favSongs.length > 0 ? `
                         <button onclick="playQueue(${JSON.stringify(favSongs).replace(/"/g, '&quot;')}, 0)" class="mt-6 bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
@@ -722,37 +937,38 @@
         }
 
         function renderPlaylistView(playlistId) {
-            const playlist = AppState.playlists.find(p => p.id === playlistId);
+            // Find by name or id due to how navigation might pass it
+            const playlist = AppState.playlists.find(p => p.id === playlistId || p.name === playlistId);
             if (!playlist) return;
             const pSongs = playlist.songs.map(id => mockSongs.find(s => s.id === id)).filter(Boolean);
             
             els.contentArea.innerHTML = `
                 <div class="flex flex-col md:flex-row md:items-end gap-6 mb-10 mt-4">
-                    <div class="w-40 h-40 md:w-56 md:h-56 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5">
+                    <div class="w-40 h-40 md:w-56 md:h-56 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0">
                         <i data-lucide="music" class="w-16 h-16 text-gray-600"></i>
                     </div>
-                    <div class="mt-2 md:mt-0">
+                    <div class="mt-2 md:mt-0 flex-1 min-w-0">
                         <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
-                        <h2 class="text-4xl md:text-6xl font-black mb-3 tracking-tight">${playlist.name}</h2>
-                        <div class="flex items-center gap-2 text-sm text-gray-300 font-medium">
-                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full">
-                            <span>${AppState.user.displayName || 'You'}</span>
-                            <span class="text-gray-500">•</span>
-                            <span>${pSongs.length} songs</span>
+                        <h2 class="text-4xl md:text-6xl font-black mb-3 tracking-tight truncate" title="${playlist.name}">${playlist.name}</h2>
+                        <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
+                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
+                            <span class="truncate">${AppState.user.displayName || 'You'}</span>
+                            <span class="text-gray-500 shrink-0">•</span>
+                            <span class="shrink-0">${pSongs.length} songs</span>
                         </div>
                         <div class="flex items-center gap-4 mt-6">
                             ${pSongs.length > 0 ? `
                             <button onclick="playQueue(${JSON.stringify(pSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
                                 <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
                             </button>` : ''}
-                            <button onclick="deletePlaylist('${playlist.id}')" class="p-3 text-gray-400 hover:text-red-500 rounded-full transition-colors">
+                            <button onclick="deletePlaylist('${playlist.id}')" class="p-3 text-gray-400 hover:text-red-500 rounded-full transition-colors" title="Delete Playlist">
                                 <i data-lucide="trash-2" class="w-6 h-6"></i>
                             </button>
                         </div>
                     </div>
                 </div>
                 <div class="space-y-1 md:space-y-2">
-                    ${pSongs.length > 0 ? pSongs.map((song, i) => SongListItem(song, pSongs, i, playlistId)).join('') : '<div class="text-gray-500 py-10 font-medium">Let\'s find some music for your playlist.</div>'}
+                    ${pSongs.length > 0 ? pSongs.map((song, i) => SongListItem(song, pSongs, i, playlist.id)).join('') : '<div class="text-gray-500 py-10 font-medium">Let\'s find some music for your playlist. Search for tracks to add them!</div>'}
                 </div>
             `;
         }
@@ -764,9 +980,9 @@
                     
                     <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex items-center gap-6">
                         <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg object-cover">
-                        <div>
-                            <div class="font-bold text-2xl tracking-tight mb-1">${AppState.user.displayName || 'Aura User'}</div>
-                            <div class="text-gray-400 font-medium">${AppState.user.email}</div>
+                        <div class="overflow-hidden">
+                            <div class="font-bold text-2xl tracking-tight mb-1 truncate">${AppState.user.displayName || 'Aura User'}</div>
+                            <div class="text-gray-400 font-medium truncate">${AppState.user.email}</div>
                         </div>
                     </div>
 
@@ -784,7 +1000,47 @@
             `;
         }
 
-        // --- UI Components ---
+        // --- UI Components & Active States ---
+        
+        // Dynamically applies active styles to currently playing songs in the DOM
+        window.renderActiveStates = () => {
+            const currentId = AppState.queue[AppState.currentIndex]?.id;
+            const isPlaying = AppState.isPlaying;
+
+            document.querySelectorAll('.song-row').forEach(row => {
+                const songId = row.dataset.songId;
+                const titleEl = row.querySelector('.song-title');
+                const numEl = row.querySelector('.song-number');
+                const eqEl = row.querySelector('.song-eq');
+                const iconEl = row.querySelector('.song-hover-icon');
+                
+                if (songId === currentId) {
+                    titleEl.classList.add('text-brand-400');
+                    titleEl.classList.remove('text-white');
+                    
+                    if (isPlaying) {
+                        numEl.classList.add('hidden');
+                        eqEl.classList.remove('hidden');
+                        eqEl.classList.add('flex');
+                        iconEl.setAttribute('data-lucide', 'pause');
+                    } else {
+                        numEl.classList.remove('hidden');
+                        eqEl.classList.add('hidden');
+                        eqEl.classList.remove('flex');
+                        iconEl.setAttribute('data-lucide', 'play');
+                    }
+                } else {
+                    titleEl.classList.remove('text-brand-400');
+                    titleEl.classList.add('text-white');
+                    numEl.classList.remove('hidden');
+                    eqEl.classList.add('hidden');
+                    eqEl.classList.remove('flex');
+                    iconEl.setAttribute('data-lucide', 'play');
+                }
+            });
+            lucide.createIcons();
+        };
+
         const SongCardLarge = (song, queue, index) => `
             <div class="min-w-[150px] md:min-w-[180px] snap-center group cursor-pointer" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
                 <div class="relative overflow-hidden rounded-xl mb-4 shadow-lg bg-dark-800 aspect-square">
@@ -795,7 +1051,7 @@
                         </div>
                     </div>
                 </div>
-                <h4 class="font-bold text-sm md:text-base text-white truncate mb-1">${song.title}</h4>
+                <h4 class="font-bold text-sm md:text-base text-white truncate mb-1 transition-colors hover:text-brand-400">${song.title}</h4>
                 <p class="text-xs md:text-sm text-gray-400 truncate font-medium">${song.artist}</p>
             </div>
         `;
@@ -809,41 +1065,50 @@
                     </div>
                 </div>
                 <div class="flex-1 overflow-hidden">
-                    <h4 class="font-bold text-sm text-white truncate mb-0.5">${song.title}</h4>
+                    <h4 class="font-bold text-sm text-white truncate mb-0.5 hover:text-brand-400 transition-colors">${song.title}</h4>
                     <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
                 </div>
-                <button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')">
+                <button class="p-2 opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')">
                     <i data-lucide="more-horizontal" class="w-5 h-5 text-gray-400 hover:text-white"></i>
                 </button>
             </div>
         `;
 
-        const SongListItem = (song, queue, index, playlistId = null) => `
-            <div class="flex items-center gap-4 p-2 md:p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
-                <div class="w-6 md:w-8 text-center text-gray-400 text-sm font-medium hidden md:block group-hover:hidden">${index + 1}</div>
-                <div class="w-6 md:w-8 text-center text-white text-sm hidden group-hover:block md:group-hover:block"><i data-lucide="play" class="w-4 h-4 fill-current mx-auto"></i></div>
+        const SongListItem = (song, queue, index, playlistId = null) => {
+            return `
+            <div class="song-row flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer" data-song-id="${song.id}" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
                 
-                <img src="${song.cover}" class="w-12 h-12 rounded-md object-cover bg-dark-800">
+                <div class="w-6 md:w-8 text-center text-gray-400 text-sm font-medium hidden md:block group-hover:hidden song-number shrink-0">${index + 1}</div>
+                
+                <!-- Equalizer Animation for active song -->
+                <div class="w-6 md:w-8 hidden items-end justify-center gap-[2px] h-4 song-eq group-hover:hidden shrink-0">
+                    <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                </div>
+
+                <div class="w-6 md:w-8 text-center text-white text-sm hidden group-hover:block md:group-hover:block shrink-0"><i data-lucide="play" class="song-hover-icon w-4 h-4 fill-current mx-auto"></i></div>
+                
+                <img src="${song.cover}" class="w-10 h-10 md:w-12 md:h-12 rounded-md object-cover bg-dark-800 shrink-0">
                 <div class="flex-1 overflow-hidden">
-                    <h4 class="font-bold text-sm text-white truncate mb-0.5">${song.title}</h4>
+                    <h4 class="song-title font-bold text-sm text-white truncate mb-0.5">${song.title}</h4>
                     <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
                 </div>
-                <div class="text-xs text-gray-400 font-medium hidden md:block w-32 truncate">${song.genre}</div>
+                <div class="text-xs text-gray-400 font-medium hidden md:block w-24 lg:w-32 truncate shrink-0">${song.genre}</div>
                 
-                <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button class="p-2.5" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
-                        <i data-lucide="heart" class="w-5 h-5 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : 'text-gray-400 hover:text-white'} transition-colors"></i>
+                <div class="flex items-center gap-0 md:gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button class="p-2 md:p-2.5" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
+                        <i data-lucide="heart" class="w-5 h-5 md:w-4 md:h-4 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : 'text-gray-400 hover:text-white'} transition-colors"></i>
                     </button>
                     ${playlistId ? `
-                    <button class="p-2.5 text-gray-400 hover:text-red-400" onclick="event.stopPropagation(); removeFromPlaylist('${song.id}', '${playlistId}')" title="Remove">
-                        <i data-lucide="minus-circle" class="w-5 h-5"></i>
+                    <button class="p-2 md:p-2.5 text-gray-400 hover:text-red-400" onclick="event.stopPropagation(); removeFromPlaylist('${song.id}', '${playlistId}')" title="Remove">
+                        <i data-lucide="minus-circle" class="w-5 h-5 md:w-4 md:h-4"></i>
                     </button>` : `
-                    <button class="p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
-                        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+                    <button class="p-2 md:p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
+                        <i data-lucide="more-horizontal" class="w-5 h-5 md:w-4 md:h-4"></i>
                     </button>`}
                 </div>
             </div>
         `;
+        };
 
         // --- Playlists Logic ---
         function renderSidebarPlaylists() {
@@ -854,13 +1119,29 @@
             `).join('');
         }
 
-        window.createNewPlaylist = async (name = null) => {
-            if(!name) name = prompt("Enter playlist name:");
-            if(name && name.trim()) {
-                const newPlaylist = { id: 'pl_' + Date.now(), name: name.trim(), songs: [] };
+        window.createNewPlaylist = () => {
+            els.createPlaylistModal.classList.remove('hidden');
+            setTimeout(() => document.getElementById('standalone-playlist-input').focus(), 100);
+        };
+
+        window.closeCreatePlaylistModal = () => {
+            els.createPlaylistModal.classList.add('hidden');
+            document.getElementById('standalone-playlist-input').value = '';
+        };
+
+        window.submitNewPlaylist = async () => {
+            const input = document.getElementById('standalone-playlist-input');
+            const name = input.value.trim();
+            if(name) {
+                const newPlaylistId = 'pl_' + Date.now();
+                const newPlaylist = { id: newPlaylistId, name: name, songs: [] };
+                
                 AppState.playlists.push(newPlaylist);
                 await saveUserData();
                 renderSidebarPlaylists();
+                
+                closeCreatePlaylistModal();
+                showToast(`Created playlist "${name}"`);
             }
         };
 
@@ -870,6 +1151,7 @@
                 await saveUserData();
                 renderSidebarPlaylists();
                 navigate('home');
+                showToast("Playlist deleted");
             }
         };
 
@@ -897,10 +1179,22 @@
 
         window.handleCreatePlaylist = async () => {
             const input = document.getElementById('new-playlist-input');
-            if(input.value.trim()) {
-                await createNewPlaylist(input.value);
-                openPlaylistModal(AppState.songToPlaylistId);
+            const name = input.value.trim();
+            if(name) {
+                const newPlaylistId = 'pl_' + Date.now();
+                const newPlaylist = { id: newPlaylistId, name: name, songs: [] };
+                
+                if (AppState.songToPlaylistId) {
+                    newPlaylist.songs.push(AppState.songToPlaylistId);
+                }
+                
+                AppState.playlists.push(newPlaylist);
+                await saveUserData();
+                renderSidebarPlaylists();
+                
+                closeModal();
                 input.value = '';
+                showToast(`Saved to "${name}"`);
             }
         };
 
@@ -908,8 +1202,14 @@
             const songId = AppState.songToPlaylistId;
             const pl = AppState.playlists.find(p => p.id === playlistId);
             if(pl) {
-                if(!pl.songs.includes(songId)) pl.songs.push(songId);
-                else pl.songs = pl.songs.filter(id => id !== songId);
+                if(!pl.songs.includes(songId)) {
+                    pl.songs.push(songId);
+                    showToast(`Added to "${pl.name}"`);
+                }
+                else {
+                    pl.songs = pl.songs.filter(id => id !== songId);
+                    showToast(`Removed from "${pl.name}"`);
+                }
                 await saveUserData();
                 closeModal();
             }
@@ -921,13 +1221,19 @@
                 pl.songs = pl.songs.filter(id => id !== songId);
                 await saveUserData();
                 if(AppState.currentView === 'playlist') renderPlaylistView(playlistId);
+                showToast("Removed from playlist");
             }
         };
 
         window.toggleFavorite = async (songId) => {
             const idx = AppState.favorites.indexOf(songId);
-            if (idx > -1) AppState.favorites.splice(idx, 1);
-            else AppState.favorites.push(songId);
+            if (idx > -1) {
+                AppState.favorites.splice(idx, 1);
+                showToast("Removed from Liked Songs");
+            } else {
+                AppState.favorites.push(songId);
+                showToast("Added to Liked Songs");
+            }
             
             await saveUserData();
             
@@ -940,6 +1246,7 @@
                 updateLikeButtonUI();
             }
             lucide.createIcons();
+            renderActiveStates();
         };
 
         window.toggleCurrentFavorite = (e) => {
@@ -947,6 +1254,37 @@
             const currentSong = AppState.queue[AppState.currentIndex];
             if(currentSong) toggleFavorite(currentSong.id);
         };
+
+        // --- Queue System ---
+        window.toggleQueue = () => {
+            AppState.isQueueOpen = !AppState.isQueueOpen;
+            if (AppState.isQueueOpen) {
+                els.queuePanel.classList.remove('translate-x-full');
+                renderQueue();
+            } else {
+                els.queuePanel.classList.add('translate-x-full');
+            }
+        };
+
+        function renderQueue() {
+            if(!AppState.isQueueOpen) return;
+            const upNext = AppState.queue.slice(AppState.currentIndex + 1);
+            
+            if(upNext.length === 0) {
+                els.queueContent.innerHTML = `<div class="text-gray-500 text-sm text-center py-10 font-medium">No upcoming tracks</div>`;
+                return;
+            }
+
+            els.queueContent.innerHTML = upNext.map((song, i) => `
+                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer" onclick="playQueue(AppState.queue, AppState.currentIndex + 1 + ${i})">
+                    <img src="${song.cover}" class="w-10 h-10 rounded object-cover bg-dark-800 shrink-0">
+                    <div class="flex-1 overflow-hidden">
+                        <h4 class="font-bold text-sm text-white truncate group-hover:text-brand-400 transition-colors">${song.title}</h4>
+                        <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
 
         // --- Player Controls & UI Sync ---
         window.playQueue = (queue, index) => {
@@ -959,31 +1297,27 @@
             const song = AppState.queue[AppState.currentIndex];
             if (!song) return;
 
-            // Show players
             els.desktopPlayer.classList.remove('player-hidden');
             els.mobileMiniPlayer.classList.remove('player-hidden');
             
-            // Sync Text/Images across ALL DOM instances via class
             document.querySelectorAll('.js-track-title').forEach(el => el.innerText = song.title);
             document.querySelectorAll('.js-track-artist').forEach(el => el.innerText = song.artist);
             document.querySelectorAll('.js-cover-art').forEach(el => el.src = song.cover);
             
-            // App Background Glow (Desktop context)
             document.documentElement.style.setProperty('--glow-color', `${song.color}30`);
             
-            // Mobile Full Player specific background mapping
             const mfpBg = document.getElementById('mfp-bg');
             mfpBg.style.background = `linear-gradient(to bottom, ${song.color}80, #121212 80%)`;
 
-            // Setup Context Text
             let contextText = "PLAYING FROM AURA";
             if(AppState.currentView === 'playlist') contextText = "PLAYING FROM PLAYLIST";
             else if(AppState.currentView === 'favorites') contextText = "PLAYING FROM LIKED SONGS";
             document.getElementById('mfp-context').innerText = contextText;
 
             updateLikeButtonUI();
+            renderActiveStates();
+            renderQueue(); // Update queue if it's open
 
-            // Audio Playback
             AppState.audio.src = song.src;
             AppState.audio.play().catch(e => console.error(e));
             recordPlay(song.id);
@@ -1002,7 +1336,6 @@
                 const el = document.getElementById(id);
                 if(el) {
                     el.setAttribute('data-lucide', icon);
-                    // Slight margin adjustment for optical centering of play vs pause
                     if(icon === 'play') el.classList.add('ml-1');
                     else el.classList.remove('ml-1');
                 }
@@ -1094,17 +1427,14 @@
             
             const progressPercent = (currentTime / duration) * 100;
             
-            // Desktop Slider Sync
             const dProg = document.getElementById('desktop-progress');
             if(dProg && document.activeElement !== dProg) dProg.value = progressPercent;
             document.getElementById('desktop-time-current').innerText = formatTime(currentTime);
             document.getElementById('desktop-time-total').innerText = formatTime(duration);
             
-            // Mobile Mini Slider Sync
             const mMini = document.getElementById('mini-progress-fill');
             if(mMini) mMini.style.width = `${progressPercent}%`;
 
-            // Mobile Full Slider Sync
             const mFull = document.getElementById('mfp-progress');
             if(mFull && document.activeElement !== mFull) {
                 mFull.value = progressPercent;
@@ -1145,7 +1475,7 @@
             els.mobileFullPlayer.style.transform = 'translateY(100%)';
         };
 
-        // Smooth Swipe Down to Dismiss logic
+        // Smooth Swipe Down to Dismiss & Left/Right Skip logic
         let touchStartX = 0;
         let touchStartY = 0;
         let touchCurrentX = 0;
@@ -1154,7 +1484,6 @@
         let isVerticalSwipe = false;
         
         els.mobileFullPlayer.addEventListener('touchstart', e => {
-            // Prevent drag if touching scrubbers or buttons
             if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button')) return; 
             
             touchStartX = e.touches[0].clientX;
@@ -1176,7 +1505,6 @@
             const deltaX = touchCurrentX - touchStartX;
             const deltaY = touchCurrentY - touchStartY;
 
-            // Determine dominant axis once per gesture
             if (!isHorizontalSwipe && !isVerticalSwipe) {
                 if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
                     isHorizontalSwipe = true;
@@ -1186,10 +1514,8 @@
             }
 
             if (isVerticalSwipe && deltaY > 0) { 
-                // Vertical drag to dismiss
                 els.mobileFullPlayer.style.transform = `translateY(${deltaY}px)`;
             } else if (isHorizontalSwipe) {
-                // Horizontal drag on cover art for physical feedback
                 const cover = document.getElementById('mfp-cover-art');
                 if(cover) cover.style.transform = `translateX(${deltaX * 0.6}px)`;
             }
@@ -1208,10 +1534,10 @@
                 if (deltaY > 120) {
                     collapsePlayer();
                 } else {
-                    els.mobileFullPlayer.style.transform = 'translateY(0)'; // Snap back up
+                    els.mobileFullPlayer.style.transform = 'translateY(0)'; 
                 }
             } else if (isHorizontalSwipe) {
-                if (Math.abs(deltaX) > 70) { // Swipe threshold
+                if (Math.abs(deltaX) > 70) { 
                     animateSwipe(deltaX < 0 ? 'next' : 'prev');
                 } else {
                     if(cover) {
@@ -1230,27 +1556,23 @@
                 return;
             }
 
-            // Animate out swiftly
             cover.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease-out';
             cover.style.transform = direction === 'next' ? 'translateX(-120%)' : 'translateX(120%)';
             cover.style.opacity = '0';
             
             setTimeout(() => {
-                // Change song logic
                 if (direction === 'next') playNext();
                 else playPrev();
                 
-                // Reposition cover art to opposite side invisibly
                 cover.style.transition = 'none';
                 cover.style.transform = direction === 'next' ? 'translateX(120%)' : 'translateX(-120%)';
                 
-                // Allow browser to render position change, then slide in
                 setTimeout(() => {
                     cover.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in';
                     cover.style.transform = 'translateX(0)';
                     cover.style.opacity = '1';
                 }, 20); 
-            }, 150); // Matches out-animation speed
+            }, 150);
         };
 
         // --- User Actions ---
@@ -1258,16 +1580,20 @@
             signOut(auth);
             if(trendingUnsubscribe) trendingUnsubscribe();
             if(userUnsubscribe) userUnsubscribe();
+            showToast("Signed out successfully");
         };
 
         window.handleDeleteAccount = async () => {
-            if(confirm("WARNING: This will permanently delete your account. Proceed?")) {
+            if(confirm("WARNING: This will permanently delete your account AND wipe all your saved data (playlists, favorites, history). Proceed?")) {
                 try {
+                    const uid = auth.currentUser.uid;
+                    const userRef = doc(db, 'artifacts', AppID, 'users', uid, 'profile', 'data');
+                    await deleteDoc(userRef);
                     await deleteUser(auth.currentUser);
-                    alert("Account deleted.");
+                    alert("Your account and all associated data have been permanently deleted.");
                     window.location.reload();
                 } catch(err) {
-                    alert("Failed to delete account. You may need to sign in again recently.");
+                    alert("Failed to delete account. For security, you may need to log out and log back in before deleting. Details: " + err.message);
                 }
             }
         };
