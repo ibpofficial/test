@@ -232,7 +232,7 @@
                     <button onclick="navigate('search')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
                         <i data-lucide="search" class="w-6 h-6"></i> Search
                     </button>
-                    <button onclick="navigate('favorites')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <button onclick="navigate('liked-view')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
                         <div class="w-6 h-6 bg-gradient-to-br from-brand-500 to-brand-800 rounded flex items-center justify-center shrink-0 shadow-sm shadow-brand-500/20">
                             <i data-lucide="heart" class="w-3.5 h-3.5 text-white fill-current"></i>
                         </div>
@@ -502,8 +502,8 @@
             <span class="text-[10px] font-medium">Search</span>
         </button>
         <button onclick="navigate('favorites')" class="nav-btn flex flex-col items-center gap-1 p-2 w-16 text-gray-400 hover:text-white transition-colors">
-            <i data-lucide="heart" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">Liked</span>
+            <i data-lucide="library" class="w-6 h-6"></i>
+            <span class="text-[10px] font-medium">Library</span>
         </button>
     </nav>
 
@@ -878,6 +878,7 @@
                     case 'home': renderHome(); break;
                     case 'search': renderSearch(); break;
                     case 'favorites': renderFavorites(); break;
+                    case 'liked-view': renderLikedView(); break;
                     case 'playlist': renderPlaylistView(data); break;
                     case 'settings': renderSettings(); break;
                     case 'admin': renderAdmin(); break;
@@ -1039,8 +1040,67 @@
         };
 
         function renderFavorites() {
+            // New Mobile-First Library View
+            const favCount = AppState.favorites.length;
+            
+            const playlistsHTML = AppState.playlists.map(p => `
+                <div class="bg-dark-800/60 hover:bg-dark-700/80 p-3 rounded-2xl flex items-center gap-4 transition-colors group cursor-pointer border border-white/5 shadow-sm" onclick="navigate('playlist', '${p.id}')">
+                    <div class="w-16 h-16 bg-dark-700 rounded-xl flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden">
+                        <i data-lucide="music" class="w-7 h-7 text-gray-500 group-hover:text-white transition-colors relative z-10"></i>
+                        ${p.songs.length > 0 ? `<img src="${AppState.catalog.find(s=>s.id === p.songs[0])?.cover}" class="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm">` : ''}
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <h4 class="font-bold text-base text-white truncate mb-1">${p.name}</h4>
+                        <p class="text-xs text-gray-400 font-medium">${p.songs.length} tracks</p>
+                    </div>
+                </div>
+            `).join('');
+
+            els.contentArea.innerHTML = `
+                <div class="flex justify-between items-center mb-8 mt-2">
+                    <h2 class="text-3xl md:text-5xl font-black tracking-tight">Your Library</h2>
+                    <button onclick="createNewPlaylist()" class="md:hidden flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-colors shadow-lg shadow-brand-500/20">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Playlist
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Liked Songs Special Card -->
+                    <div class="bg-gradient-to-br from-brand-600 to-brand-900 p-3 rounded-2xl flex items-center gap-4 transition-transform hover:scale-[1.02] cursor-pointer shadow-lg shadow-brand-900/20 border border-white/10" onclick="navigate('liked-view')">
+                        <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center shrink-0 backdrop-blur-md">
+                            <i data-lucide="heart" class="w-7 h-7 text-white fill-current"></i>
+                        </div>
+                        <div class="flex-1 overflow-hidden">
+                            <h4 class="font-bold text-lg text-white truncate mb-0.5 drop-shadow-sm">Liked Songs</h4>
+                            <p class="text-xs text-brand-100 font-medium">${favCount} tracks</p>
+                        </div>
+                    </div>
+
+                    ${playlistsHTML}
+                </div>
+                
+                ${AppState.playlists.length === 0 ? `
+                <div class="text-center mt-16 md:hidden">
+                    <div class="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
+                        <i data-lucide="list-music" class="w-8 h-8 text-gray-500"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">Create a playlist</h3>
+                    <p class="text-sm text-gray-400 mb-6">Build your own custom mix effortlessly.</p>
+                    <button onclick="createNewPlaylist()" class="bg-white text-black font-bold px-6 py-3 rounded-full text-sm hover:scale-105 transition-transform shadow-xl">Create Playlist</button>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        function renderLikedView() {
             const favSongs = AppState.favorites.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
             els.contentArea.innerHTML = `
+                <div class="flex items-center gap-4 mb-6 md:hidden">
+                    <button onclick="navigate('favorites')" class="p-2 bg-dark-800 rounded-full hover:bg-dark-700 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <span class="font-bold text-lg">Liked Songs</span>
+                </div>
                 <div class="flex flex-col md:flex-row md:items-end gap-6 mb-8 mt-2">
                     <div class="w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-brand-500 to-brand-900 rounded-xl shadow-2xl flex items-center justify-center shrink-0">
                         <i data-lucide="heart" class="w-12 h-12 text-white fill-current"></i>
@@ -1061,7 +1121,7 @@
                     </div>
                 </div>
                 <div class="space-y-1 md:space-y-2">
-                    ${favSongs.length > 0 ? favSongs.map((song, i) => SongListItem(song, favSongs, i)).join('') : '<div class="text-gray-500 py-10 font-medium">Songs you like will appear here.</div>'}
+                    ${favSongs.length > 0 ? favSongs.map((song, i) => SongListItem(song, favSongs, i)).join('') : '<div class="text-gray-500 py-10 font-medium text-center md:text-left">Songs you like will appear here.</div>'}
                 </div>
             `;
         }
@@ -1073,9 +1133,16 @@
             const pSongs = playlist.songs.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
             
             els.contentArea.innerHTML = `
+                <div class="flex items-center gap-4 mb-6 md:hidden">
+                    <button onclick="navigate('favorites')" class="p-2 bg-dark-800 rounded-full hover:bg-dark-700 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <span class="font-bold text-lg truncate">${playlist.name}</span>
+                </div>
                 <div class="flex flex-col md:flex-row md:items-end gap-6 mb-8 mt-2">
-                    <div class="w-32 h-32 md:w-40 md:h-40 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0">
-                        <i data-lucide="music" class="w-12 h-12 text-gray-600"></i>
+                    <div class="w-32 h-32 md:w-40 md:h-40 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0 relative overflow-hidden">
+                        <i data-lucide="music" class="w-12 h-12 text-gray-600 relative z-10"></i>
+                        ${pSongs.length > 0 ? `<img src="${pSongs[0].cover}" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-[2px]">` : ''}
                     </div>
                     <div class="mt-2 md:mt-0 flex-1 min-w-0">
                         <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
@@ -1092,13 +1159,13 @@
                                 <i data-lucide="play" class="w-5 h-5 fill-current ml-1"></i>
                             </button>` : ''}
                             <button onclick="deletePlaylist('${playlist.id}')" class="p-3 text-gray-400 hover:text-red-500 rounded-full transition-colors" title="Delete Playlist">
-                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                <i data-lucide="trash-2" class="w-6 h-6"></i>
                             </button>
                         </div>
                     </div>
                 </div>
                 <div class="space-y-1 md:space-y-2">
-                    ${pSongs.length > 0 ? pSongs.map((song, i) => SongListItem(song, pSongs, i, playlist.id)).join('') : '<div class="text-gray-500 py-10 font-medium">Let\'s find some music for your playlist. Search for tracks to add them!</div>'}
+                    ${pSongs.length > 0 ? pSongs.map((song, i) => SongListItem(song, pSongs, i, playlist.id)).join('') : '<div class="text-gray-500 py-10 font-medium text-center md:text-left">Let\'s find some music for your playlist. Search for tracks to add them!</div>'}
                 </div>
             `;
         }
@@ -1386,8 +1453,8 @@
                     </h4>
                     <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
                 </div>
-                <button class="p-2 opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')">
-                    <i data-lucide="more-horizontal" class="w-5 h-5 text-gray-400 hover:text-white"></i>
+                <button class="p-3 -mr-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')">
+                    <i data-lucide="more-horizontal" class="w-6 h-6 md:w-5 md:h-5 text-gray-400 hover:text-white"></i>
                 </button>
             </div>
         `;
@@ -1415,16 +1482,16 @@
                 </div>
                 <div class="text-xs text-gray-400 font-medium hidden md:block w-24 lg:w-32 truncate shrink-0">${song.genre}</div>
                 
-                <div class="flex items-center gap-0 md:gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button class="p-2 md:p-2.5" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
-                        <i data-lucide="heart" class="w-5 h-5 md:w-4 md:h-4 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : 'text-gray-400 hover:text-white'} transition-colors"></i>
+                <div class="flex items-center gap-1 md:gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button class="p-3 md:p-2.5" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
+                        <i data-lucide="heart" class="w-6 h-6 md:w-5 md:h-5 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : 'text-gray-400 hover:text-white'} transition-colors"></i>
                     </button>
                     ${playlistId ? `
-                    <button class="p-2 md:p-2.5 text-gray-400 hover:text-red-400" onclick="event.stopPropagation(); removeFromPlaylist('${song.id}', '${playlistId}')" title="Remove">
-                        <i data-lucide="minus-circle" class="w-5 h-5 md:w-4 md:h-4"></i>
+                    <button class="p-3 md:p-2.5 text-gray-400 hover:text-red-400" onclick="event.stopPropagation(); removeFromPlaylist('${song.id}', '${playlistId}')" title="Remove">
+                        <i data-lucide="minus-circle" class="w-6 h-6 md:w-5 md:h-5"></i>
                     </button>` : `
-                    <button class="p-2 md:p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
-                        <i data-lucide="more-horizontal" class="w-5 h-5 md:w-4 md:h-4"></i>
+                    <button class="p-3 md:p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
+                        <i data-lucide="more-horizontal" class="w-6 h-6 md:w-5 md:h-5"></i>
                     </button>`}
                 </div>
             </div>
