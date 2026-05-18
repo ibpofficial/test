@@ -321,6 +321,11 @@
                     <button onclick="toggleCurrentFavorite(event)" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all hover:scale-105">
                         <i data-lucide="heart" id="dfs-like-icon" class="w-8 h-8 text-white transition-colors"></i>
                     </button>
+                    <!-- Add to Playlist Button (DFS) -->
+                    <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all hover:scale-105 ml-2" title="Add to Playlist">
+                        <i data-lucide="list-plus" class="w-8 h-8 text-white"></i>
+                    </button>
+                    
                     <!-- Small playing animation -->
                     <div class="flex items-end justify-center gap-1 h-6 ml-4 opacity-70">
                         <div class="eq-bar w-1.5 bg-white"></div>
@@ -367,7 +372,10 @@
             <div class="flex justify-between items-center mb-4 md:mb-6 shrink-0">
                 <button onclick="collapsePlayer()" class="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="chevron-down" class="w-7 h-7 text-white"></i></button>
                 <span class="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-white/80 drop-shadow-md text-center" id="mfp-context">PLAYING FROM AURA</span>
-                <button class="p-2 -mr-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="more-vertical" class="w-6 h-6 text-white"></i></button>
+                <!-- Add to Playlist Button (MFP) -->
+                <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-2 -mr-2 hover:bg-white/10 rounded-full transition-colors" title="Add to Playlist">
+                    <i data-lucide="list-plus" class="w-6 h-6 text-white"></i>
+                </button>
             </div>
 
             <!-- Cover Art Container -->
@@ -447,6 +455,10 @@
             </div>
             <button onclick="toggleCurrentFavorite(event)" class="p-2 hover:bg-white/5 rounded-full transition-colors ml-2">
                 <i data-lucide="heart" id="desktop-like-icon" class="w-5 h-5 text-gray-400 hover:text-white"></i>
+            </button>
+            <!-- Add to Playlist Button (Desktop) -->
+            <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-2 hover:bg-white/5 rounded-full transition-colors" title="Add to Playlist">
+                <i data-lucide="list-plus" class="w-5 h-5 text-gray-400 hover:text-white"></i>
             </button>
         </div>
 
@@ -890,24 +902,27 @@
 
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
-            // Calculate Personalized Auto-Playlist
-            const topPlayedIds = Object.entries(AppState.playHistory || {})
-                .sort((a, b) => b[1] - a[1])
-                .map(e => e[0]);
-                
-            let yourMix = topPlayedIds.map(id => catalog.find(s => s.id === id)).filter(Boolean);
+            // 1. Better Daily Mix Generation
+            let yourMix = [];
+            const topPlayedIds = Object.entries(AppState.playHistory || {}).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+            const topPlayedSongs = topPlayedIds.map(id => catalog.find(s => s.id === id)).filter(Boolean);
             
-            // Pad the mix if user hasn't played enough songs yet
-            if (yourMix.length < 8) {
-                const fillers = [...catalog].sort(() => 0.5 - Math.random());
-                fillers.forEach(s => {
-                    if(!yourMix.find(m => m.id === s.id) && yourMix.length < 10) yourMix.push(s);
-                });
-            } else {
-                yourMix = yourMix.slice(0, 10);
+            // Add Top 4 played songs
+            yourMix.push(...topPlayedSongs.slice(0, 4));
+            
+            // Find 4 recommendations from favorite genres
+            const favGenres = [...new Set(topPlayedSongs.slice(0, 5).map(s => s.genre).concat(AppState.favorites.map(id => catalog.find(s=>s.id===id)?.genre)))].filter(Boolean);
+            if (favGenres.length > 0) {
+                const recommendations = catalog.filter(s => favGenres.includes(s.genre) && !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
+                yourMix.push(...recommendations.slice(0, 4));
             }
 
-            // Group by Genres dynamically
+            // Fill the rest (up to 10) with complete wildcards
+            const wildcards = catalog.filter(s => !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
+            yourMix.push(...wildcards.slice(0, 10 - yourMix.length));
+            yourMix = yourMix.slice(0, 10); // cap at 10
+
+            // 2. Group by Genres dynamically for Shelves
             const genresMap = {};
             catalog.forEach(song => {
                 if (song.genre) {
@@ -916,7 +931,6 @@
                 }
             });
 
-            // Build dynamic genre sections for every genre
             const genreSectionsHTML = Object.keys(genresMap)
                 .sort() // Alphabetical sorting
                 .filter(genre => genresMap[genre].length > 0)
@@ -978,6 +992,17 @@
                 </section>
 
                 ${genreSectionsHTML}
+
+                <!-- Dedicated Complete Catalog Section -->
+                <section class="mt-12 pt-6 border-t border-white/5 pb-10">
+                    <h3 class="text-xl font-bold mb-6 tracking-tight flex items-center gap-2">
+                        <i data-lucide="disc-3" class="text-brand-400 w-5 h-5"></i>
+                        All Tracks
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        ${catalog.map((song, i) => SongCardSmall(song, catalog, i)).join('')}
+                    </div>
+                </section>
             `;
             els.contentArea.innerHTML = html;
         }
@@ -1567,7 +1592,7 @@
             const upNext = AppState.queue.slice(AppState.currentIndex + 1);
             
             if(upNext.length === 0) {
-                els.queueContent.innerHTML = `<div class="text-gray-500 text-sm text-center py-10 font-medium">No upcoming tracks</div>`;
+                els.queueContent.innerHTML = `<div class="text-gray-500 text-sm text-center py-10 font-medium">Auto-play will select the next track.</div>`;
                 return;
             }
 
@@ -1582,9 +1607,9 @@
             `).join('');
         }
 
-        // --- Player Controls & UI Sync ---
+        // --- Player Controls & Endless Auto-Play Logic ---
         window.playQueue = (queue, index) => {
-            AppState.queue = queue;
+            AppState.queue = [...queue]; // Create a copy so we don't accidentally mutate the original shelf array
             AppState.currentIndex = index;
             loadSong();
         };
@@ -1603,19 +1628,20 @@
             document.documentElement.style.setProperty('--glow-color', `${song.color}30`);
             
             const mfpBg = document.getElementById('mfp-bg');
-            mfpBg.style.background = `linear-gradient(to bottom, ${song.color}80, #121212 80%)`;
+            if (mfpBg) mfpBg.style.background = `linear-gradient(to bottom, ${song.color}80, #121212 80%)`;
 
             const dfsBg = document.getElementById('dfs-bg');
-            if(dfsBg) dfsBg.style.backgroundImage = `url(${song.cover})`;
+            if (dfsBg) dfsBg.style.backgroundImage = `url(${song.cover})`;
 
             let contextText = "PLAYING FROM AURA";
             if(AppState.currentView === 'playlist') contextText = "PLAYING FROM PLAYLIST";
             else if(AppState.currentView === 'favorites') contextText = "PLAYING FROM LIKED SONGS";
-            document.getElementById('mfp-context').innerText = contextText;
+            const mfpContext = document.getElementById('mfp-context');
+            if (mfpContext) mfpContext.innerText = contextText;
 
             updateLikeButtonUI();
             renderActiveStates();
-            renderQueue(); // Update queue if it's open
+            renderQueue();
 
             AppState.audio.src = song.src;
             AppState.audio.play().catch(e => console.error(e));
@@ -1663,12 +1689,33 @@
 
         window.playNext = (e) => {
             if(e) e.stopPropagation();
-            if (AppState.queue.length === 0) return;
+            if (AppState.catalog.length === 0) return;
             
             if (AppState.isShuffle) {
-                AppState.currentIndex = Math.floor(Math.random() * AppState.queue.length);
+                // Endless Shuffle: Pick completely random song from entire catalog, insert next
+                let available = AppState.catalog.filter(s => s.id !== AppState.queue[AppState.currentIndex]?.id);
+                if(available.length === 0) available = AppState.catalog;
+                
+                const randomSong = available[Math.floor(Math.random() * available.length)];
+                AppState.queue.splice(AppState.currentIndex + 1, 0, randomSong);
+                AppState.currentIndex++;
             } else {
-                AppState.currentIndex = (AppState.currentIndex + 1) % AppState.queue.length;
+                // Smart Auto-Play if we hit the end of the queue
+                if (AppState.currentIndex >= AppState.queue.length - 1) {
+                    const currentSong = AppState.queue[AppState.currentIndex];
+                    let suggestions = AppState.catalog.filter(s => s.genre === currentSong?.genre && s.id !== currentSong?.id);
+                    
+                    // 30% chance to wildcard jump to a completely different genre for freshness!
+                    if (suggestions.length === 0 || Math.random() > 0.7) {
+                        suggestions = AppState.catalog.filter(s => s.id !== currentSong?.id);
+                    }
+                    
+                    if (suggestions.length === 0) suggestions = AppState.catalog; // Extreme fallback
+                    
+                    const nextSong = suggestions[Math.floor(Math.random() * suggestions.length)];
+                    AppState.queue.push(nextSong);
+                }
+                AppState.currentIndex++;
             }
             loadSong();
         };
@@ -1677,10 +1724,10 @@
             if(e) e.stopPropagation();
             if (AppState.queue.length === 0) return;
             
-            if (AppState.audio.currentTime > 3) {
+            if (AppState.audio.currentTime > 3 || AppState.currentIndex === 0) {
                 AppState.audio.currentTime = 0;
             } else {
-                AppState.currentIndex = (AppState.currentIndex - 1 + AppState.queue.length) % AppState.queue.length;
+                AppState.currentIndex--;
                 loadSong();
             }
         };
@@ -1705,6 +1752,8 @@
                     if(id==='mfp-shuffle') el.classList.toggle('text-white/70', !AppState.isShuffle);
                 }
             });
+            if(AppState.isShuffle) showToast("Endless Shuffle Enabled");
+            else showToast("Shuffle Disabled");
         };
 
         window.toggleRepeat = (e) => {
@@ -1718,6 +1767,8 @@
                     if(id==='mfp-repeat') el.classList.toggle('text-white/70', !AppState.isRepeat);
                 }
             });
+            if(AppState.isRepeat) showToast("Repeat Enabled");
+            else showToast("Repeat Disabled");
         };
 
         function updateProgressUI() {
@@ -1914,21 +1965,18 @@
         window.addEventListener('keydown', (e) => {
             if(!e.key) return;
             secretBuffer += e.key.toLowerCase();
-            // Keep buffer at reasonable length
             if (secretBuffer.length > 10) secretBuffer = secretBuffer.slice(-10);
             
-            // Check for secret code
             if (secretBuffer.includes('ishant')) {
                 if (!AppState.isAdmin) {
                     AppState.isAdmin = true;
                     showToast('Developer Admin Mode Unlocked!');
-                    // Re-render settings if user is currently on the settings page
                     if (AppState.currentView === 'settings') {
                         renderSettings();
                         lucide.createIcons();
                     }
                 }
-                secretBuffer = ''; // Reset buffer
+                secretBuffer = '';
             }
         });
 
