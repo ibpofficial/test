@@ -9,7 +9,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
@@ -122,6 +122,23 @@
         @keyframes eq {
             0% { height: 4px; }
             100% { height: 16px; }
+        }
+
+        /* Mix Playlist Visuals */
+        .mix-mosaic {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            height: 100%;
+            width: 100%;
+        }
+        .mix-mosaic img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .mix-overlay {
+            background: linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%);
         }
 
         .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
@@ -255,7 +272,7 @@
                         <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full object-cover bg-dark-800">
                         <div class="text-left flex-1 overflow-hidden">
                             <div id="user-name" class="text-sm font-semibold truncate text-white">User</div>
-                            <div class="text-[11px] truncate">Settings</div>
+                            <div class="text-[11px] truncate text-brand-400" id="sidebar-timer-status">Settings</div>
                         </div>
                     </button>
                 </div>
@@ -271,8 +288,9 @@
                         </div>
                         <span class="text-xl font-bold tracking-tight">Aura</span>
                     </div>
-                    <button onclick="navigate('settings')" class="hover:scale-105 transition-transform">
+                    <button onclick="navigate('settings')" class="hover:scale-105 transition-transform relative">
                         <img id="mobile-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full border border-white/10 shadow-lg bg-dark-800 object-cover">
+                        <div id="mobile-timer-dot" class="absolute -top-1 -right-1 w-3 h-3 bg-brand-500 rounded-full border-2 border-dark-900 hidden"></div>
                     </button>
                 </header>
 
@@ -565,14 +583,16 @@
 
         // --- Initial Seed Data ---
         const initialMockSongs = [
-            { id: 's1', title: 'Neon Nightscape', artist: 'Synthwave Engine', genre: 'Electronic', cover: 'https://images.unsplash.com/photo-1614113489855-66422ad300a4?w=400&q=80', color: '#8b5cf6', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', date: '2024-05-10' },
+            { id: 's1', title: 'Neon Nightscape', artist: 'Synthwave Engine', genre: 'Electronic', cover: 'https://images.unsplash.com/photo-1614113489855-66422ad300a4?w=400&q=80', color: '#8b5cf6', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', date: '2024-05-10', isFeatured: true },
             { id: 's2', title: 'Urban Flow', artist: 'Beatsmith', genre: 'Hip Hop', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', color: '#ec4899', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', date: '2024-05-15' },
-            { id: 's3', title: 'Acoustic Sunrise', artist: 'The Wanderers', genre: 'Acoustic', cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80', color: '#f59e0b', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', date: '2024-04-20' },
+            { id: 's3', title: 'Acoustic Sunrise', artist: 'The Wanderers', genre: 'Acoustic', cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80', color: '#f59e0b', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', date: '2024-04-20', isFeatured: true },
             { id: 's4', title: 'Deep Space', artist: 'Nova', genre: 'Electronic', cover: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80', color: '#3b82f6', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', date: '2024-05-17' },
             { id: 's5', title: 'Jazz Lounge', artist: 'Midnight Quartet', genre: 'Jazz', cover: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&q=80', color: '#eab308', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', date: '2024-03-10' },
             { id: 's6', title: 'Rock Anthem', artist: 'Iron Edge', genre: 'Rock', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80', color: '#ef4444', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', date: '2024-05-01' },
             { id: 's7', title: 'Lo-Fi Chill', artist: 'Rainy Days', genre: 'Lo-Fi', cover: 'https://images.unsplash.com/photo-1483808161634-29aa1b1151c0?w=400&q=80', color: '#6366f1', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', date: '2024-05-16' },
-            { id: 's8', title: 'Classical Serenade', artist: 'Symphony X', genre: 'Classical', cover: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80', color: '#d946ef', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', date: '2024-02-14' }
+            { id: 's8', title: 'Classical Serenade', artist: 'Symphony X', genre: 'Classical', cover: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80', color: '#d946ef', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', date: '2024-02-14' },
+            { id: 's9', title: 'Pop Dreams', artist: 'Starlight', genre: 'Pop', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f10660?w=400&q=80', color: '#10b981', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3', date: '2024-06-01' },
+            { id: 's10', title: 'Midnight Drive', artist: 'Synthwave Engine', genre: 'Electronic', cover: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&q=80', color: '#f43f5e', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', date: '2024-06-05' }
         ];
 
         const initialMockArtists = [
@@ -583,7 +603,8 @@
             { id: 'a5', name: 'Midnight Quartet', cover: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&q=80' },
             { id: 'a6', name: 'Iron Edge', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80' },
             { id: 'a7', name: 'Rainy Days', cover: 'https://images.unsplash.com/photo-1483808161634-29aa1b1151c0?w=400&q=80' },
-            { id: 'a8', name: 'Symphony X', cover: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80' }
+            { id: 'a8', name: 'Symphony X', cover: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80' },
+            { id: 'a9', name: 'Starlight', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f10660?w=400&q=80' }
         ];
 
         // --- App State ---
@@ -593,6 +614,7 @@
             artists: [],
             favorites: [],
             playlists: [],
+            autoMixes: [], // Dynamically generated mixes
             playHistory: {},
             trendingStats: {}, // Stores: { playCounts: {}, listenTime: {} }
             currentView: 'home',
@@ -606,13 +628,18 @@
             isDesktopFullScreen: false,
             audio: new Audio(),
             songToPlaylistId: null,
-            isAdmin: false 
+            isAdmin: false,
+            
+            // Sleep Timer
+            sleepTimerActive: false,
+            sleepTimerEndTime: null
         };
 
-        // --- Active Listen Time Tracking ---
+        // --- Active Listen Time Tracking & Sleep Timer ---
         window.currentListenSecs = 0;
         window.listenTimer = null;
         window.lastPlayedSongId = null;
+        window.settingsTimerInterval = null;
 
         // Audio initialization
         AppState.audio.volume = 1;
@@ -636,7 +663,7 @@
         });
 
         AppState.audio.addEventListener('ended', () => {
-            saveListenDuration(); // Save current song's duration to Firebase before moving to next
+            saveListenDuration(); 
             if (AppState.isRepeat) {
                 AppState.audio.currentTime = 0;
                 AppState.audio.play();
@@ -697,7 +724,18 @@
             }, 3000);
         };
 
-        // Global Error Handler to catch JS issues
+        // Superior Randomizer Algorithm (Fisher-Yates)
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // Global Error Handler
         window.addEventListener('error', function(e) {
             console.error("Global error caught:", e.message);
         });
@@ -808,6 +846,7 @@
                 els.mobileMiniPlayer.classList.add('player-hidden');
                 AppState.audio.pause();
                 clearInterval(window.listenTimer);
+                if(window.settingsTimerInterval) clearInterval(window.settingsTimerInterval);
             }
         });
 
@@ -837,7 +876,6 @@
                 }
             }, (error) => {
                 console.warn("Catalog fetch error:", error);
-                // Hard fallback so screen never goes blank
                 if(AppState.catalog.length === 0) {
                     AppState.catalog = initialMockSongs;
                     refreshCurrentView();
@@ -887,10 +925,12 @@
                 } else {
                     setDoc(userRef, { favorites: [], playlists: [], playHistory: {} }).catch(e => console.warn(e));
                 }
+                
+                generateAutoMixes(); // Generate custom AI mixes when history changes
                 renderSidebarPlaylists();
                 
                 if(AppState.currentView === 'favorites') renderFavorites();
-                else if (AppState.currentView === 'playlist') renderPlaylistView(document.querySelector('h2')?.innerText || '');
+                else if (AppState.currentView === 'playlist' || AppState.currentView === 'auto-mix') renderPlaylistView(document.querySelector('h2')?.innerText || '');
 
                 updateLikeButtonUI();
                 renderActiveStates();
@@ -909,13 +949,13 @@
         }
 
         function refreshCurrentView() {
-            if (['home', 'search', 'favorites', 'playlist', 'admin', 'artists'].includes(AppState.currentView) || AppState.currentView.startsWith('artist-detail')) {
+            if (['home', 'search', 'favorites', 'playlist', 'admin', 'artists', 'auto-mix'].includes(AppState.currentView) || AppState.currentView.startsWith('artist-detail')) {
                 if(AppState.currentView === 'home') renderHome();
                 if(AppState.currentView === 'search' && document.getElementById('search-input')?.value) handleSearch({target: document.getElementById('search-input')});
                 if(AppState.currentView === 'artists') renderArtists();
                 if(AppState.currentView === 'artist-detail') renderArtistDetail(document.querySelector('h2')?.innerText || '');
                 if(AppState.currentView === 'favorites') renderFavorites();
-                if(AppState.currentView === 'playlist') renderPlaylistView(document.querySelector('h2')?.innerText || '');
+                if(AppState.currentView === 'playlist' || AppState.currentView === 'auto-mix') renderPlaylistView(document.querySelector('h2')?.innerText || '');
                 if(AppState.currentView === 'admin') renderAdmin();
                 lucide.createIcons();
                 renderActiveStates();
@@ -954,10 +994,11 @@
             try {
                 await setDoc(userRef, { playHistory: { [songId]: increment(1) } }, { merge: true });
                 AppState.playHistory[songId] = (AppState.playHistory[songId] || 0) + 1;
+                // Since history changed, regenerate mixes quietly in background
+                generateAutoMixes(); 
             } catch (err) {}
         }
 
-        // Accurately logs real listen time to Firebase to make Trending algorithm legitimate
         function saveListenDuration() {
             if (window.lastPlayedSongId && window.currentListenSecs > 5) {
                 const id = window.lastPlayedSongId;
@@ -969,8 +1010,86 @@
             window.currentListenSecs = 0;
         }
 
+        // --- Advanced Auto-Mix Algorithm ---
+        function generateAutoMixes() {
+            const mixes = [];
+            const userHistory = AppState.playHistory || {};
+            const catalog = AppState.catalog;
+            if(catalog.length === 0) return;
+
+            // 1. Your Top Artists Mix
+            const artistCounts = {};
+            Object.entries(userHistory).forEach(([songId, count]) => {
+                const song = catalog.find(s => s.id === songId);
+                if(song) artistCounts[song.artist] = (artistCounts[song.artist] || 0) + count;
+            });
+            const topArtists = Object.keys(artistCounts).sort((a,b) => artistCounts[b] - artistCounts[a]).slice(0, 3);
+            if(topArtists.length > 0) {
+                let artistSongs = catalog.filter(s => topArtists.includes(s.artist));
+                artistSongs = shuffleArray([...artistSongs]).slice(0, 20); // up to 20 songs
+                mixes.push({ 
+                    id: 'mix_artists', 
+                    name: 'Top Artists Mix', 
+                    desc: 'A custom mix of your favorite voices.', 
+                    songs: artistSongs.map(s=>s.id), 
+                    colorFrom: 'from-fuchsia-600', 
+                    colorTo: 'to-purple-900',
+                    isAutoMix: true
+                });
+            }
+
+            // 2. Genre Mixes (Pop, Electronic, etc.)
+            const genreCounts = {};
+            Object.entries(userHistory).forEach(([songId, count]) => {
+                const song = catalog.find(s => s.id === songId);
+                if(song && song.genre) genreCounts[song.genre] = (genreCounts[song.genre] || 0) + count;
+            });
+            const topGenres = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0, 2);
+            
+            topGenres.forEach((genre, idx) => {
+                let genreSongs = catalog.filter(s => s.genre === genre);
+                if(genreSongs.length >= 3) {
+                    genreSongs = shuffleArray([...genreSongs]).slice(0, 15);
+                    const colorPairs = [
+                        {from: 'from-blue-500', to: 'to-cyan-800'},
+                        {from: 'from-rose-500', to: 'to-orange-800'},
+                        {from: 'from-emerald-500', to: 'to-teal-900'}
+                    ];
+                    const cols = colorPairs[idx % colorPairs.length];
+                    mixes.push({ 
+                        id: `mix_genre_${genre.replace(/\s+/g,'_')}`, 
+                        name: `${genre} Mix`, 
+                        desc: `The best of ${genre}, curated for you.`, 
+                        songs: genreSongs.map(s=>s.id),
+                        colorFrom: cols.from, 
+                        colorTo: cols.to,
+                        isAutoMix: true
+                    });
+                }
+            });
+
+            // 3. Discovery Mix (Songs they have never heard)
+            let discoverySongs = catalog.filter(s => !userHistory[s.id] || userHistory[s.id] === 0);
+            if(discoverySongs.length > 0) {
+                discoverySongs = shuffleArray([...discoverySongs]).slice(0, 15);
+                mixes.push({ 
+                    id: 'mix_discover', 
+                    name: 'Discovery Mix', 
+                    desc: 'Expand your horizons with unheard tracks.', 
+                    songs: discoverySongs.map(s=>s.id),
+                    colorFrom: 'from-amber-500', 
+                    colorTo: 'to-red-900',
+                    isAutoMix: true
+                });
+            }
+
+            AppState.autoMixes = mixes;
+        }
+
         // --- Navigation & Rendering ---
         window.navigate = (view, data = null) => {
+            if(window.settingsTimerInterval) clearInterval(window.settingsTimerInterval);
+
             AppState.currentView = view;
             
             // UI Selection states
@@ -996,6 +1115,7 @@
                     case 'favorites': renderFavorites(); break;
                     case 'liked-view': renderLikedView(); break;
                     case 'playlist': renderPlaylistView(data); break;
+                    case 'auto-mix': renderPlaylistView(data, true); break;
                     case 'settings': renderSettings(); break;
                     case 'admin': renderAdmin(); break;
                 }
@@ -1005,31 +1125,24 @@
                 
                 // Transition In
                 els.contentArea.classList.remove('fade-out');
-            }, 200); // matches CSS duration
+            }, 200); 
         };
 
-        // Custom function for the big Endless Radio button
+        // Smart "Play All" Logic respecting Shuffle state
         window.playAll = () => {
             if(AppState.catalog.length === 0) return;
-            const shuffled = [...AppState.catalog].sort(() => 0.5 - Math.random());
-            AppState.isShuffle = true; 
+            let tracksToPlay = [...AppState.catalog];
             
-            // Sync UI toggle for shuffle
-            ['desktop-shuffle', 'mfp-shuffle'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    el.classList.add('text-brand-500');
-                    if(id==='desktop-shuffle') el.classList.remove('text-gray-400');
-                    if(id==='mfp-shuffle') el.classList.remove('text-white/70');
-                }
-            });
-
-            playQueue(shuffled, 0);
-            showToast("Playing Endless Radio Mode...");
+            if (AppState.isShuffle) {
+                tracksToPlay = shuffleArray(tracksToPlay);
+                showToast("Playing Endless Radio (Shuffled)");
+            } else {
+                showToast("Playing All Tracks");
+            }
+            playQueue(tracksToPlay, 0);
         };
 
         function renderHome() {
-            // BULLETPROOF LOADING STATE: prevents completely blank screens during async fetch
             if(AppState.catalog.length === 0) {
                 els.contentArea.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-[60vh] text-brand-500">
@@ -1043,19 +1156,20 @@
             
             const catalog = AppState.catalog;
             
+            // Featured Tracks from Admin
+            const featuredTracks = catalog.filter(s => s.isFeatured);
+            
             // Trending explicitly uses our new algorithm `getTrendingScore`
             const trending = [...catalog].sort((a, b) => getTrendingScore(b.id) - getTrendingScore(a.id)).slice(0, 10);
             const dailyHits = [...trending].slice(0, 8); 
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
-            // --- Vibe Match (Predictive Engine) ---
+            // --- Vibe Match (Predictive Engine Upgrade) ---
             let userGenresMap = {};
-            // Weight favorites heavily
             AppState.favorites.forEach(id => {
                 const song = catalog.find(s => s.id === id);
                 if(song && song.genre) userGenresMap[song.genre] = (userGenresMap[song.genre] || 0) + 3;
             });
-            // Weight play history
             Object.entries(AppState.playHistory || {}).forEach(([id, plays]) => {
                 const song = catalog.find(s => s.id === id);
                 if(song && song.genre) userGenresMap[song.genre] = (userGenresMap[song.genre] || 0) + plays;
@@ -1065,27 +1179,16 @@
             
             let vibeMatch = [];
             if (topGenres.length > 0) {
-                // Find songs they like the genre of, but haven't played much
                 vibeMatch = catalog.filter(s => topGenres.includes(s.genre) && (AppState.playHistory[s.id] || 0) < 3);
-                vibeMatch = vibeMatch.sort(() => 0.5 - Math.random()).slice(0, 10);
+                vibeMatch = shuffleArray(vibeMatch).slice(0, 10);
             }
-            if (vibeMatch.length < 5) { // Fallback if they exhausted their genre or are new
-                vibeMatch = catalog.filter(s => !topGenres.includes(s.genre)).sort(() => 0.5 - Math.random()).slice(0, 10);
+            if (vibeMatch.length < 5) { 
+                vibeMatch = shuffleArray(catalog.filter(s => !topGenres.includes(s.genre))).slice(0, 10);
             }
 
-            // --- Your Daily Mix (Favorites + Discoveries) ---
-            let yourMix = [];
-            const topPlayedIds = Object.entries(AppState.playHistory || {}).sort((a, b) => b[1] - a[1]).map(e => e[0]);
-            const topPlayedSongs = topPlayedIds.map(id => catalog.find(s => s.id === id)).filter(Boolean);
-            
-            yourMix.push(...topPlayedSongs.slice(0, 4)); // 4 top hits
-            if (topGenres.length > 0) {
-                const recommendations = catalog.filter(s => topGenres.includes(s.genre) && !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
-                yourMix.push(...recommendations.slice(0, 4)); // 4 recommendations
-            }
-            const wildcards = catalog.filter(s => !yourMix.find(m => m.id === s.id)).sort(() => 0.5 - Math.random());
-            yourMix.push(...wildcards.slice(0, 10 - yourMix.length)); // Fill rest
-            yourMix = yourMix.slice(0, 10);
+            // --- DISCOVERY: New sounds (Zero plays) ---
+            let discoveryTracks = catalog.filter(s => !AppState.playHistory[s.id] || AppState.playHistory[s.id] === 0);
+            discoveryTracks = shuffleArray(discoveryTracks).slice(0, 10);
 
             // --- Dynamic Genre Shelves ---
             const genresMap = {};
@@ -1111,19 +1214,39 @@
                     `;
                 }).join('');
 
-            const html = `
-                <div class="relative w-full h-48 md:h-64 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-8 group cursor-pointer shadow-xl" onclick="playQueue(${JSON.stringify(trending).replace(/"/g, '&quot;')}, 0)">
-                    <div class="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-dark-900/60 to-transparent z-10 flex flex-col justify-center p-6 md:p-10">
-                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2 drop-shadow-md">Daily Update</span>
-                        <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">Global Top 50</h2>
-                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2 drop-shadow-md">The most played tracks across the Aura universe in the last 24 hours.</p>
-                        <div class="mt-4 flex flex-wrap items-center gap-4">
-                            <button onclick="event.stopPropagation(); playAll()" class="bg-brand-500 hover:bg-brand-400 text-white px-5 py-2.5 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20 text-sm">
-                                <i data-lucide="shuffle" class="w-4 h-4 mr-2"></i> Endless Radio
-                            </button>
+            // Featured Hero Section (Only shows if admin featured tracks exist)
+            let featuredHTML = '';
+            if(featuredTracks.length > 0) {
+                const ft = featuredTracks[0]; // Spotlight the first one
+                featuredHTML = `
+                    <div class="relative w-full h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-8 group cursor-pointer shadow-xl border border-brand-500/30" onclick="playQueue(${JSON.stringify(featuredTracks).replace(/"/g, '&quot;')}, 0)">
+                        <div class="absolute inset-0 bg-gradient-to-r from-dark-900/95 via-dark-900/70 to-transparent z-10 flex flex-col justify-center p-6 md:p-10">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i>
+                                <span class="text-xs font-bold tracking-widest uppercase text-yellow-400 drop-shadow-md">Editor's Pick</span>
+                            </div>
+                            <h2 class="text-4xl md:text-6xl font-black text-white mb-2 drop-shadow-lg truncate max-w-[80%]">${ft.title}</h2>
+                            <p class="text-xl text-gray-300 font-medium drop-shadow-md">${ft.artist}</p>
+                            <div class="mt-6 flex flex-wrap items-center gap-4">
+                                <button onclick="event.stopPropagation(); playQueue(${JSON.stringify(featuredTracks).replace(/"/g, '&quot;')}, 0)" class="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20 text-sm">
+                                    <i data-lucide="play" class="w-5 h-5 mr-2 fill-current"></i> Listen Now
+                                </button>
+                            </div>
                         </div>
+                        <img src="${ft.cover}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay group-hover:scale-105 transition-transform duration-700">
                     </div>
-                    <img src="${trending[0]?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80'}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay group-hover:scale-105 transition-transform duration-700">
+                `;
+            }
+
+            const html = `
+                ${featuredHTML}
+
+                <!-- Global Play All -->
+                <div class="flex items-center justify-between mb-6 ${featuredHTML ? '' : 'mt-4'}">
+                    <h2 class="text-2xl md:text-3xl font-black tracking-tight">Welcome, ${AppState.user.displayName || 'Listener'}</h2>
+                    <button onclick="playAll()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-full flex items-center shadow-lg transition-transform hover:scale-105 font-bold text-sm">
+                        <i data-lucide="${AppState.isShuffle ? 'shuffle' : 'play'}" class="w-4 h-4 mr-2 ${AppState.isShuffle ? '' : 'fill-current'}"></i> Play All
+                    </button>
                 </div>
 
                 <section>
@@ -1142,19 +1265,21 @@
                         Vibe Match For You
                     </h3>
                     <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
-                        ${vibeMatch.map((song, i) => SongCardLarge(song, vibeMatch, i)).join('')}
+                        ${vibeMatch.length > 0 ? vibeMatch.map((song, i) => SongCardLarge(song, vibeMatch, i)).join('') : '<p class="text-gray-500 italic text-sm py-4">Listen to more songs to get personalized matches!</p>'}
                     </div>
                 </section>
 
+                ${discoveryTracks.length > 0 ? `
                 <section class="mt-8">
                     <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
-                        <i data-lucide="sparkles" class="text-brand-400 w-5 h-5"></i>
-                        Your Daily Mix
+                        <i data-lucide="compass" class="text-brand-400 w-5 h-5"></i>
+                        Discover New Sounds
                     </h3>
+                    <p class="text-xs text-gray-400 mb-4 font-medium -mt-2">Tracks you've never heard before.</p>
                     <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
-                        ${yourMix.map((song, i) => SongCardLarge(song, yourMix, i)).join('')}
+                        ${discoveryTracks.map((song, i) => SongCardLarge(song, discoveryTracks, i)).join('')}
                     </div>
-                </section>
+                </section>` : ''}
 
                 <section class="mt-8">
                     <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
@@ -1205,12 +1330,9 @@
         // --- Artists Logic ---
         function renderArtists() {
             const artistsList = [...AppState.artists].sort((a,b) => a.name.localeCompare(b.name));
-            
-            // Calculate song counts dynamically
             artistsList.forEach(a => {
                 a.songCount = AppState.catalog.filter(s => s.artist === a.name).length;
             });
-            
             window._currentArtistsList = artistsList;
 
             els.contentArea.innerHTML = `
@@ -1246,7 +1368,6 @@
             const query = e.target.value.toLowerCase();
             const container = document.getElementById('artists-results');
             if(!window._currentArtistsList) return;
-            
             const filtered = window._currentArtistsList.filter(a => a.name.toLowerCase().includes(query));
             container.innerHTML = renderArtistCards(filtered);
             lucide.createIcons();
@@ -1257,11 +1378,7 @@
             if(artistSongs.length === 0) return;
             
             const cover = artistSongs[0].cover;
-            
-            // Calculate total plays strictly for this artist
             const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.playCounts?.[song.id] || 0), 0);
-            
-            // Sort their songs by popularity
             const sortedSongs = [...artistSongs].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
 
             els.contentArea.innerHTML = `
@@ -1290,7 +1407,7 @@
                             <button onclick="playQueue(${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
                                 <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
                             </button>
-                            <button onclick="playQueue([...${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}].sort(()=>0.5-Math.random()), 0)" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist">
+                            <button onclick="playQueue(shuffleArray([...${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}]), 0)" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist">
                                 <i data-lucide="shuffle" class="w-6 h-6"></i>
                             </button>
                         </div>
@@ -1307,10 +1424,41 @@
             `;
         }
 
+        // --- Library & Mixes UI ---
         function renderFavorites() {
-            // New Mobile-First Library View
             const favCount = AppState.favorites.length;
             
+            // Made For You (Auto Mixes)
+            let mixHTML = '';
+            if(AppState.autoMixes && AppState.autoMixes.length > 0) {
+                mixHTML = `
+                    <h3 class="text-xl font-bold mt-10 mb-4 tracking-tight flex items-center gap-2">
+                        <i data-lucide="sparkles" class="text-brand-400 w-5 h-5"></i> Made For You
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                        ${AppState.autoMixes.map(mix => {
+                            const covers = mix.songs.slice(0,4).map(id => AppState.catalog.find(s=>s.id===id)?.cover).filter(Boolean);
+                            const mosaicHTML = covers.map(c => `<img src="${c}">`).join('');
+                            return `
+                            <div class="relative overflow-hidden rounded-2xl aspect-[4/3] group cursor-pointer border border-white/10 shadow-lg" onclick="navigate('auto-mix', '${mix.id}')">
+                                <div class="mix-mosaic absolute inset-0 opacity-40 mix-blend-luminosity">${mosaicHTML}</div>
+                                <div class="absolute inset-0 bg-gradient-to-br ${mix.colorFrom} ${mix.colorTo} opacity-80 mix-blend-multiply transition-transform group-hover:scale-110 duration-700"></div>
+                                <div class="mix-overlay absolute inset-0 opacity-60"></div>
+                                
+                                <div class="absolute inset-0 p-4 flex flex-col justify-end z-10">
+                                    <div class="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-auto shadow-lg opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
+                                        <i data-lucide="play" class="w-4 h-4 text-white fill-current ml-0.5"></i>
+                                    </div>
+                                    <h4 class="text-lg md:text-xl font-black text-white drop-shadow-md leading-tight mb-1">${mix.name}</h4>
+                                    <p class="text-[10px] md:text-xs text-white/70 font-medium line-clamp-2">${mix.desc}</p>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
             const playlistsHTML = AppState.playlists.map(p => `
                 <div class="bg-dark-800/60 hover:bg-dark-700/80 p-3 rounded-2xl flex items-center gap-4 transition-colors group cursor-pointer border border-white/5 shadow-sm" onclick="navigate('playlist', '${p.id}')">
                     <div class="w-16 h-16 bg-dark-700 rounded-xl flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden">
@@ -1332,6 +1480,11 @@
                     </button>
                 </div>
 
+                ${mixHTML}
+
+                <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
+                    <i data-lucide="list" class="text-brand-400 w-5 h-5"></i> Custom Playlists
+                </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Liked Songs Special Card -->
                     <div class="bg-gradient-to-br from-brand-600 to-brand-900 p-3 rounded-2xl flex items-center gap-4 transition-transform hover:scale-[1.02] cursor-pointer shadow-lg shadow-brand-900/20 border border-white/10" onclick="navigate('liked-view')">
@@ -1348,12 +1501,12 @@
                 </div>
                 
                 ${AppState.playlists.length === 0 ? `
-                <div class="text-center mt-16 md:hidden">
-                    <div class="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
-                        <i data-lucide="list-music" class="w-8 h-8 text-gray-500"></i>
+                <div class="text-center mt-12 md:hidden">
+                    <div class="w-16 h-16 bg-dark-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
+                        <i data-lucide="list-music" class="w-6 h-6 text-gray-500"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-white mb-2">Create a playlist</h3>
-                    <p class="text-sm text-gray-400 mb-6">Build your own custom mix effortlessly.</p>
+                    <h3 class="text-base font-bold text-white mb-2">Create a playlist</h3>
+                    <p class="text-xs text-gray-400 mb-6">Build your own custom mix effortlessly.</p>
                     <button onclick="createNewPlaylist()" class="bg-white text-black font-bold px-6 py-3 rounded-full text-sm hover:scale-105 transition-transform shadow-xl">Create Playlist</button>
                 </div>
                 ` : ''}
@@ -1394,11 +1547,34 @@
             `;
         }
 
-        function renderPlaylistView(playlistId) {
-            const playlist = AppState.playlists.find(p => p.id === playlistId || p.name === playlistId);
+        // Handles both user playlists and auto-mixes
+        function renderPlaylistView(playlistId, isAutoMix = false) {
+            let playlist;
+            if(isAutoMix) playlist = AppState.autoMixes.find(p => p.id === playlistId);
+            else playlist = AppState.playlists.find(p => p.id === playlistId || p.name === playlistId);
+            
             if (!playlist) return;
             const pSongs = playlist.songs.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
             
+            let artHTML = '';
+            if(isAutoMix) {
+                const covers = pSongs.slice(0,4).map(s=>s.cover);
+                artHTML = `
+                    <div class="w-32 h-32 md:w-40 md:h-40 rounded-xl shadow-2xl relative overflow-hidden border border-white/10 shrink-0">
+                        <div class="mix-mosaic absolute inset-0 mix-blend-luminosity opacity-50">${covers.map(c=>`<img src="${c}">`).join('')}</div>
+                        <div class="absolute inset-0 bg-gradient-to-br ${playlist.colorFrom} ${playlist.colorTo} opacity-80 mix-blend-multiply"></div>
+                        <i data-lucide="sparkles" class="w-10 h-10 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 drop-shadow-md"></i>
+                    </div>
+                `;
+            } else {
+                artHTML = `
+                    <div class="w-32 h-32 md:w-40 md:h-40 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0 relative overflow-hidden">
+                        <i data-lucide="music" class="w-12 h-12 text-gray-600 relative z-10"></i>
+                        ${pSongs.length > 0 ? `<img src="${pSongs[0].cover}" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-[2px]">` : ''}
+                    </div>
+                `;
+            }
+
             els.contentArea.innerHTML = `
                 <div class="flex items-center gap-4 mb-6 md:hidden">
                     <button onclick="navigate('favorites')" class="p-2 bg-dark-800 rounded-full hover:bg-dark-700 transition-colors">
@@ -1407,16 +1583,14 @@
                     <span class="font-bold text-lg truncate">${playlist.name}</span>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-end gap-6 mb-8 mt-2">
-                    <div class="w-32 h-32 md:w-40 md:h-40 bg-dark-800 rounded-xl shadow-2xl flex items-center justify-center border border-white/5 shrink-0 relative overflow-hidden">
-                        <i data-lucide="music" class="w-12 h-12 text-gray-600 relative z-10"></i>
-                        ${pSongs.length > 0 ? `<img src="${pSongs[0].cover}" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-[2px]">` : ''}
-                    </div>
+                    ${artHTML}
                     <div class="mt-2 md:mt-0 flex-1 min-w-0">
-                        <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
+                        <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">${isAutoMix ? 'Made For You' : 'Playlist'}</p>
                         <h2 class="text-3xl md:text-5xl font-black mb-3 tracking-tight truncate" title="${playlist.name}">${playlist.name}</h2>
                         <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
+                            ${isAutoMix ? '<i data-lucide="bot" class="w-5 h-5 text-brand-400 shrink-0"></i> <span>Aura Smart Mix</span>' : `
                             <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
-                            <span class="truncate">${AppState.user.displayName || 'You'}</span>
+                            <span class="truncate">${AppState.user.displayName || 'You'}</span>`}
                             <span class="text-gray-500 shrink-0">•</span>
                             <span class="shrink-0">${pSongs.length} songs</span>
                         </div>
@@ -1425,28 +1599,47 @@
                             <button onclick="playQueue(${JSON.stringify(pSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
                                 <i data-lucide="play" class="w-5 h-5 fill-current ml-1"></i>
                             </button>` : ''}
-                            <button onclick="deletePlaylist('${playlist.id}')" class="p-3 text-gray-400 hover:text-red-500 rounded-full transition-colors" title="Delete Playlist">
+                            ${!isAutoMix ? `
+                            <button onclick="deletePlaylist('${playlist.id}')" class="p-3 text-gray-400 hover:text-red-500 rounded-full transition-colors bg-white/5" title="Delete Playlist">
                                 <i data-lucide="trash-2" class="w-6 h-6"></i>
-                            </button>
+                            </button>` : ''}
                         </div>
                     </div>
                 </div>
                 <div class="space-y-1 md:space-y-2">
-                    ${pSongs.length > 0 ? pSongs.map((song, i) => SongListItem(song, pSongs, i, playlist.id)).join('') : '<div class="text-gray-500 py-10 font-medium text-center md:text-left">Let\'s find some music for your playlist. Search for tracks to add them!</div>'}
+                    ${pSongs.length > 0 ? pSongs.map((song, i) => SongListItem(song, pSongs, i, isAutoMix ? null : playlist.id)).join('') : '<div class="text-gray-500 py-10 font-medium text-center md:text-left">Let\'s find some music for your playlist. Search for tracks to add them!</div>'}
                 </div>
             `;
         }
 
+        // --- Settings & Sleep Timer ---
         function renderSettings() {
+            let timerDisplay = AppState.sleepTimerActive ? 'Active' : 'Off';
+            
             els.contentArea.innerHTML = `
                 <div class="max-w-2xl mt-4">
                     <h2 class="text-3xl font-black mb-8 tracking-tight">Account Settings</h2>
                     
                     <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex items-center gap-6">
-                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg object-cover">
+                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg object-cover border-2 border-white/10">
                         <div class="overflow-hidden">
                             <div class="font-bold text-2xl tracking-tight mb-1 truncate">${AppState.user.displayName || 'Aura User'}</div>
                             <div class="text-gray-400 font-medium truncate">${AppState.user.email}</div>
+                        </div>
+                    </div>
+
+                    <!-- Sleep Timer Section -->
+                    <div class="glass-panel rounded-2xl p-6 mb-8 border border-white/5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="moon" class="text-brand-400 w-5 h-5"></i> Sleep Timer</h3>
+                            <span id="settings-timer-status" class="text-sm font-bold px-3 py-1 rounded-full ${AppState.sleepTimerActive ? 'bg-brand-500/20 text-brand-400' : 'bg-white/10 text-gray-400'}">${timerDisplay}</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-5">Automatically pause music playback after a set time.</p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <button onclick="setSleepTimer(15)" class="py-2.5 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition-colors">15 min</button>
+                            <button onclick="setSleepTimer(30)" class="py-2.5 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition-colors">30 min</button>
+                            <button onclick="setSleepTimer(60)" class="py-2.5 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition-colors">1 hour</button>
+                            <button onclick="setSleepTimer(0)" class="py-2.5 rounded-xl border border-red-500/30 text-red-400 bg-red-500/5 text-sm font-medium hover:bg-red-500/20 transition-colors">Turn Off</button>
                         </div>
                     </div>
 
@@ -1462,14 +1655,76 @@
                             <span>Log Out</span>
                             <i data-lucide="log-out" class="w-5 h-5 text-gray-400"></i>
                         </button>
-                        <button onclick="handleDeleteAccount()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 px-6 py-4 rounded-xl text-left flex items-center justify-between transition-colors border border-red-500/10 font-semibold">
+                        <button onclick="handleDeleteAccount()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 px-6 py-4 rounded-xl text-left flex items-center justify-between transition-colors border border-red-500/10 font-semibold mt-6">
                             <span>Delete Account</span>
                             <i data-lucide="user-x" class="w-5 h-5"></i>
                         </button>
                     </div>
                 </div>
             `;
+            
+            // Live countdown updater for settings page
+            if(window.settingsTimerInterval) clearInterval(window.settingsTimerInterval);
+            window.settingsTimerInterval = setInterval(() => {
+                const statusEl = document.getElementById('settings-timer-status');
+                const sidebarEl = document.getElementById('sidebar-timer-status');
+                if(!AppState.sleepTimerActive) {
+                    if(statusEl) {
+                        statusEl.innerText = "Off";
+                        statusEl.className = "text-sm font-bold px-3 py-1 rounded-full bg-white/10 text-gray-400";
+                    }
+                    if(sidebarEl) sidebarEl.innerText = "Settings";
+                    return;
+                }
+                const diff = AppState.sleepTimerEndTime - Date.now();
+                if(diff <= 0) return;
+                const min = Math.floor(diff / 60000);
+                const sec = Math.floor((diff % 60000)/1000);
+                const text = `${min}m ${sec}s`;
+                if(statusEl) {
+                    statusEl.innerText = text;
+                    statusEl.className = "text-sm font-bold px-3 py-1 rounded-full bg-brand-500/20 text-brand-400";
+                }
+                if(sidebarEl) sidebarEl.innerText = "Timer: " + text;
+            }, 1000);
         }
+
+        window.setSleepTimer = (minutes) => {
+            if(window.sleepTimerInterval) clearInterval(window.sleepTimerInterval);
+            
+            if(minutes === 0) {
+                AppState.sleepTimerActive = false;
+                showToast("Sleep timer disabled");
+                document.getElementById('mobile-timer-dot').classList.add('hidden');
+                document.getElementById('sidebar-timer-status').innerText = "Settings";
+                document.getElementById('sidebar-timer-status').classList.remove('text-brand-400');
+                renderSettings();
+                return;
+            }
+            
+            AppState.sleepTimerActive = true;
+            AppState.sleepTimerEndTime = Date.now() + (minutes * 60 * 1000);
+            showToast(`Sleep timer set for ${minutes} minutes`);
+            document.getElementById('mobile-timer-dot').classList.remove('hidden');
+            document.getElementById('sidebar-timer-status').classList.add('text-brand-400');
+            
+            window.sleepTimerInterval = setInterval(() => {
+                if(Date.now() >= AppState.sleepTimerEndTime) {
+                    AppState.audio.pause();
+                    AppState.isPlaying = false;
+                    updatePlayButtonUI();
+                    clearInterval(window.sleepTimerInterval);
+                    AppState.sleepTimerActive = false;
+                    document.getElementById('mobile-timer-dot').classList.add('hidden');
+                    document.getElementById('sidebar-timer-status').innerText = "Settings";
+                    document.getElementById('sidebar-timer-status').classList.remove('text-brand-400');
+                    showToast("Sleep timer ended. Playback paused.");
+                }
+            }, 5000); // Check periodically
+            
+            renderSettings(); // Update UI immediately
+        };
+
 
         // --- Admin Logic & Renders ---
         window.adminTab = 'songs';
@@ -1493,24 +1748,32 @@
                             <form id="upload-song-form" class="space-y-4" onsubmit="handleUploadSong(event)">
                                 <input type="hidden" id="edit-song-id" value="">
                                 
-                                <div class="p-4 bg-brand-900/10 rounded-xl border border-brand-500/20 mb-2">
-                                    <label class="text-xs text-brand-400 font-bold uppercase tracking-wider mb-1 block">GitHub Pages / Base URL (Optional)</label>
-                                    <input type="url" id="up-base-url" placeholder="https://yourusername.github.io/repo/" class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-brand-500 outline-none text-white transition-colors">
-                                    <p class="text-[10px] text-brand-400/70 mt-1.5 leading-tight">If set, you can just type simple filenames (e.g. "123.mp3") below instead of the full URL.</p>
+                                <!-- Featured Toggle -->
+                                <div class="p-4 bg-brand-900/10 rounded-xl border border-brand-500/20 mb-4 flex items-center justify-between">
+                                    <div>
+                                        <label class="text-sm text-white font-bold block mb-0.5">Feature this Track</label>
+                                        <p class="text-[10px] text-brand-400/70 leading-tight">Featured tracks appear in the hero carousel on the Home screen.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="up-featured" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                                    </label>
                                 </div>
                                 
-                                <div>
-                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Title</label>
-                                    <input type="text" id="up-title" required placeholder="Track Name" class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="col-span-2 sm:col-span-1">
+                                        <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Title</label>
+                                        <input type="text" id="up-title" required placeholder="Track Name" class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
+                                    </div>
+                                    <div class="col-span-2 sm:col-span-1">
+                                        <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Artist</label>
+                                        <input type="text" id="up-artist" list="artist-list" required placeholder="Select or type..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
+                                        <datalist id="artist-list">
+                                            ${AppState.artists.map(a => `<option value="${a.name}">`).join('')}
+                                        </datalist>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Artist</label>
-                                    <input type="text" id="up-artist" list="artist-list" required placeholder="Select existing or type a new artist..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
-                                    <datalist id="artist-list">
-                                        ${AppState.artists.map(a => `<option value="${a.name}">`).join('')}
-                                    </datalist>
-                                    <p class="text-[10px] text-gray-500 mt-1">Pick from the list or type a new name to auto-create.</p>
-                                </div>
+
                                 <div class="grid grid-cols-3 gap-4">
                                     <div class="col-span-1">
                                         <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Genre</label>
@@ -1527,13 +1790,13 @@
                                 </div>
                                 
                                 <div class="pt-2">
-                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 block">Cover Image (URL or Filename)</label>
-                                    <input type="text" id="up-cover-url" required placeholder="image.jpg OR https://..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand-500 outline-none text-white">
+                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 block">Cover Image URL</label>
+                                    <input type="text" id="up-cover-url" required placeholder="https://..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand-500 outline-none text-white">
                                 </div>
 
                                 <div class="pt-2">
-                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 block">Audio File (URL or Filename)</label>
-                                    <input type="text" id="up-audio-url" required placeholder="song.mp3 OR https://..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand-500 outline-none text-white">
+                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 block">Audio File URL</label>
+                                    <input type="text" id="up-audio-url" required placeholder="https://..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand-500 outline-none text-white">
                                 </div>
 
                                 <div class="flex gap-3 mt-4">
@@ -1555,11 +1818,12 @@
                             <div class="flex-1 overflow-y-auto hide-scrollbar space-y-2 pr-2" id="admin-catalog-list">
                                 ${AppState.catalog.map(song => `
                                     <div class="admin-catalog-item bg-dark-900/50 p-3 rounded-xl flex items-center gap-4 border border-white/5 hover:bg-white/5 transition-colors" data-search="${song.title} ${song.artist} ${song.genre}">
-                                        <img src="${song.cover}" loading="lazy" class="w-12 h-12 rounded-lg object-cover shrink-0 bg-dark-800">
+                                        <img src="${song.cover}" loading="lazy" class="w-12 h-12 rounded-lg object-cover shrink-0 bg-dark-800 border ${song.isFeatured ? 'border-brand-500' : 'border-transparent'}">
                                         <div class="flex-1 overflow-hidden">
-                                            <div class="font-bold text-sm text-white truncate">
+                                            <div class="font-bold text-sm text-white truncate flex items-center gap-2">
                                                 ${song.title}
-                                                ${song.badge ? `<span class="ml-2 inline-block bg-brand-600/80 text-white text-[9px] px-1.5 py-0.5 rounded uppercase align-middle tracking-wider">${song.badge}</span>` : ''}
+                                                ${song.isFeatured ? '<i data-lucide="star" class="w-3 h-3 text-yellow-400 fill-current"></i>' : ''}
+                                                ${song.badge ? `<span class="bg-brand-600/80 text-white text-[9px] px-1.5 py-0.5 rounded uppercase align-middle tracking-wider">${song.badge}</span>` : ''}
                                             </div>
                                             <div class="text-xs text-gray-400 truncate">${song.artist}</div>
                                         </div>
@@ -1672,7 +1936,7 @@
             document.getElementById('up-genre').value = song.genre;
             document.getElementById('up-color').value = song.color || '#8b5cf6';
             document.getElementById('up-badge').value = song.badge || '';
-            document.getElementById('up-base-url').value = ''; 
+            document.getElementById('up-featured').checked = song.isFeatured || false; 
             document.getElementById('up-cover-url').value = song.cover;
             document.getElementById('up-audio-url').value = song.src;
             
@@ -1687,6 +1951,7 @@
         window.cancelEditSong = () => {
             document.getElementById('upload-song-form').reset();
             document.getElementById('edit-song-id').value = '';
+            document.getElementById('up-featured').checked = false;
             document.getElementById('upload-btn').innerText = "Add Song to Catalog";
             document.getElementById('cancel-edit-btn').classList.add('hidden');
             document.getElementById('form-title').innerHTML = `<i data-lucide="music" class="text-brand-400"></i> Add External Song`;
@@ -1747,8 +2012,8 @@
             const genre = document.getElementById('up-genre').value.trim();
             const color = document.getElementById('up-color').value;
             const badge = document.getElementById('up-badge').value.trim();
+            const isFeatured = document.getElementById('up-featured').checked;
             
-            let baseUrlInput = document.getElementById('up-base-url').value.trim();
             let coverUrl = document.getElementById('up-cover-url').value.trim();
             let audioUrl = document.getElementById('up-audio-url').value.trim();
 
@@ -1760,21 +2025,11 @@
                 return url;
             };
 
-            baseUrlInput = formatGitUrl(baseUrlInput);
-            coverUrl = formatGitUrl(coverUrl);
-            audioUrl = formatGitUrl(audioUrl);
-
-            if (baseUrlInput) {
-                const base = baseUrlInput.endsWith('/') ? baseUrlInput : baseUrlInput + '/';
-                if (!coverUrl.startsWith('http')) coverUrl = base + coverUrl;
-                if (!audioUrl.startsWith('http')) audioUrl = base + audioUrl;
-            }
-            
             coverUrl = formatGitUrl(coverUrl);
             audioUrl = formatGitUrl(audioUrl);
 
             if (!coverUrl.startsWith('http') || !audioUrl.startsWith('http')) {
-                return showToast("Error: Please provide full URLs or set a Base URL above.");
+                return showToast("Error: Please provide full URLs.");
             }
 
             btn.disabled = true;
@@ -1785,7 +2040,8 @@
                     title, artist, genre, color,
                     cover: coverUrl,
                     src: audioUrl,
-                    badge: badge || null
+                    badge: badge || null,
+                    isFeatured: isFeatured
                 };
 
                 if (editId) {
@@ -1799,7 +2055,6 @@
                     showToast("Song successfully added to catalog!");
                 }
                 
-                // Auto-create artist if they typed a new one
                 const artistExists = AppState.artists.find(a => a.name.toLowerCase() === artist.toLowerCase());
                 if (!artistExists) {
                     const artistId = 'a_' + Date.now();
@@ -1809,7 +2064,7 @@
                     showToast(`New artist "${artist}" auto-created!`);
                 }
                 
-                cancelEditSong(); // Clear the form and reset buttons
+                cancelEditSong(); 
                 
             } catch (error) {
                 console.error("Database error:", error);
@@ -2074,7 +2329,7 @@
             
             if(AppState.currentView === 'home') renderHome();
             if(AppState.currentView === 'favorites') renderFavorites();
-            if(AppState.currentView === 'playlist') navigate('playlist', document.querySelector('h2').innerText);
+            if(AppState.currentView === 'playlist' || AppState.currentView === 'auto-mix') navigate(AppState.currentView, document.querySelector('h2').innerText);
             if(AppState.currentView === 'search') handleSearch({target: document.getElementById('search-input')});
 
             if(AppState.queue[AppState.currentIndex]?.id === songId) {
@@ -2121,7 +2376,7 @@
             `).join('');
         }
 
-        // --- Player Controls & Endless Auto-Play Logic ---
+        // --- Player Controls & Auto-Play Logic ---
         window.playQueue = (queue, index) => {
             AppState.queue = [...queue]; 
             AppState.currentIndex = index;
@@ -2153,6 +2408,7 @@
 
             let contextText = "PLAYING FROM AURA";
             if(AppState.currentView === 'playlist') contextText = "PLAYING FROM PLAYLIST";
+            else if(AppState.currentView === 'auto-mix') contextText = "PLAYING FROM SMART MIX";
             else if(AppState.currentView === 'favorites') contextText = "PLAYING FROM LIKED SONGS";
             const mfpContext = document.getElementById('mfp-context');
             if (mfpContext) mfpContext.innerText = contextText;
@@ -2210,6 +2466,7 @@
             if (AppState.catalog.length === 0) return;
             
             if (AppState.isShuffle) {
+                // If Shuffle is on, we pick entirely randomly using the catalog
                 let available = AppState.catalog.filter(s => s.id !== AppState.queue[AppState.currentIndex]?.id);
                 if(available.length === 0) available = AppState.catalog;
                 
@@ -2217,14 +2474,15 @@
                 AppState.queue.splice(AppState.currentIndex + 1, 0, randomSong);
                 AppState.currentIndex++;
             } else {
+                // Not shuffle. Play next in line.
                 if (AppState.currentIndex >= AppState.queue.length - 1) {
+                    // Reached end of current queue line. Auto-fetch a smart suggestion to keep radio alive
                     const currentSong = AppState.queue[AppState.currentIndex];
                     let suggestions = AppState.catalog.filter(s => s.genre === currentSong?.genre && s.id !== currentSong?.id);
                     
                     if (suggestions.length === 0 || Math.random() > 0.7) {
                         suggestions = AppState.catalog.filter(s => s.id !== currentSong?.id);
                     }
-                    
                     if (suggestions.length === 0) suggestions = AppState.catalog; 
                     
                     const nextSong = suggestions[Math.floor(Math.random() * suggestions.length)];
@@ -2258,7 +2516,7 @@
                     if(id==='mfp-shuffle') el.classList.toggle('text-white/70', !AppState.isShuffle);
                 }
             });
-            if(AppState.isShuffle) showToast("Endless Shuffle Enabled");
+            if(AppState.isShuffle) showToast("Shuffle Enabled (Fisher-Yates)");
             else showToast("Shuffle Disabled");
         };
 
