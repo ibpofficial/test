@@ -32,7 +32,7 @@
         body {
             background-color: #0a0a0a;
             color: #ffffff;
-            overflow: hidden; /* Prevent body scroll, handle internally */
+            overflow: hidden; 
             -webkit-tap-highlight-color: transparent;
         }
         
@@ -87,7 +87,7 @@
         }
         .desktop-slider:focus { outline: none; }
 
-        /* Dynamic Background Glow for App */
+        /* Dynamic Background Glow */
         #bg-glow {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: radial-gradient(circle at 50% -20%, var(--glow-color, rgba(139, 92, 246, 0.15)) 0%, transparent 60%);
@@ -95,7 +95,7 @@
             transition: background 1.5s ease;
         }
 
-        /* Mobile Progress Bar Logic */
+        /* Mobile Progress Bar */
         input[type=range].mobile-scrubber::-webkit-slider-thumb {
             -webkit-appearance: none; width: 24px; height: 24px; background: transparent;
         }
@@ -126,7 +126,6 @@
 
         .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
         .player-hidden { display: none !important; }
     </style>
 </head>
@@ -231,6 +230,9 @@
                     </button>
                     <button onclick="navigate('search')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
                         <i data-lucide="search" class="w-6 h-6"></i> Search
+                    </button>
+                    <button onclick="navigate('artists')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <i data-lucide="mic-2" class="w-6 h-6"></i> Artists
                     </button>
                     <button onclick="navigate('liked-view')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
                         <div class="w-6 h-6 bg-gradient-to-br from-brand-500 to-brand-800 rounded flex items-center justify-center shrink-0 shadow-sm shadow-brand-500/20">
@@ -492,16 +494,20 @@
     </div>
 
     <!-- Mobile Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-dark-900/95 backdrop-blur-2xl border-t border-white/5 h-[60px] flex justify-around items-center md:hidden z-20 px-2 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-        <button onclick="navigate('home')" class="nav-btn flex flex-col items-center gap-1 p-2 w-16 text-gray-400 active-nav hover:text-white transition-colors">
+    <nav class="fixed bottom-0 left-0 right-0 bg-dark-900/95 backdrop-blur-2xl border-t border-white/5 h-[60px] flex justify-around items-center md:hidden z-20 px-1 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+        <button onclick="navigate('home')" class="nav-btn flex flex-col items-center gap-1 p-2 w-[4.5rem] text-gray-400 active-nav hover:text-white transition-colors">
             <i data-lucide="home" class="w-6 h-6"></i>
             <span class="text-[10px] font-medium">Home</span>
         </button>
-        <button onclick="navigate('search')" class="nav-btn flex flex-col items-center gap-1 p-2 w-16 text-gray-400 hover:text-white transition-colors">
+        <button onclick="navigate('search')" class="nav-btn flex flex-col items-center gap-1 p-2 w-[4.5rem] text-gray-400 hover:text-white transition-colors">
             <i data-lucide="search" class="w-6 h-6"></i>
             <span class="text-[10px] font-medium">Search</span>
         </button>
-        <button onclick="navigate('favorites')" class="nav-btn flex flex-col items-center gap-1 p-2 w-16 text-gray-400 hover:text-white transition-colors">
+        <button onclick="navigate('artists')" class="nav-btn flex flex-col items-center gap-1 p-2 w-[4.5rem] text-gray-400 hover:text-white transition-colors">
+            <i data-lucide="mic-2" class="w-6 h-6"></i>
+            <span class="text-[10px] font-medium">Artists</span>
+        </button>
+        <button onclick="navigate('favorites')" class="nav-btn flex flex-col items-center gap-1 p-2 w-[4.5rem] text-gray-400 hover:text-white transition-colors">
             <i data-lucide="library" class="w-6 h-6"></i>
             <span class="text-[10px] font-medium">Library</span>
         </button>
@@ -569,10 +575,22 @@
             { id: 's8', title: 'Classical Serenade', artist: 'Symphony X', genre: 'Classical', cover: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80', color: '#d946ef', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', date: '2024-02-14' }
         ];
 
+        const initialMockArtists = [
+            { id: 'a1', name: 'Synthwave Engine', cover: 'https://images.unsplash.com/photo-1614113489855-66422ad300a4?w=400&q=80' },
+            { id: 'a2', name: 'Beatsmith', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80' },
+            { id: 'a3', name: 'The Wanderers', cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80' },
+            { id: 'a4', name: 'Nova', cover: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80' },
+            { id: 'a5', name: 'Midnight Quartet', cover: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&q=80' },
+            { id: 'a6', name: 'Iron Edge', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80' },
+            { id: 'a7', name: 'Rainy Days', cover: 'https://images.unsplash.com/photo-1483808161634-29aa1b1151c0?w=400&q=80' },
+            { id: 'a8', name: 'Symphony X', cover: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&q=80' }
+        ];
+
         // --- App State ---
         window.AppState = {
             user: null,
             catalog: [],
+            artists: [],
             favorites: [],
             playlists: [],
             playHistory: {},
@@ -679,6 +697,11 @@
             }, 3000);
         };
 
+        // Global Error Handler to catch JS issues
+        window.addEventListener('error', function(e) {
+            console.error("Global error caught:", e.message);
+        });
+
         // --- Authentication Flow ---
         els.toggleAuthBtn.addEventListener('click', () => {
             isLoginMode = !isLoginMode;
@@ -704,7 +727,7 @@
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
                     await sendEmailVerification(cred.user);
                     await signOut(auth);
-                    alert("Account created! A verification link has been sent to your email. Please verify before signing in.");
+                    showToast("Account created! A verification link has been sent to your email.");
                     isLoginMode = true;
                     document.getElementById('auth-submit').innerText = 'Sign In';
                     els.toggleAuthBtn.innerText = 'Need an account? Sign Up';
@@ -770,7 +793,9 @@
                 document.getElementById('user-avatar').src = pic;
                 document.getElementById('mobile-avatar').src = pic;
 
+                // Load critical resources
                 loadCatalogData();
+                loadArtistsData();
                 await loadUserData();
                 loadTrendingData();
                 navigate('home');
@@ -786,31 +811,64 @@
             }
         });
 
-        // --- Data Fetching ---
+        // --- Data Fetching & Bulletproof Error Handling ---
         let trendingUnsubscribe = null;
         let userUnsubscribe = null;
 
         function loadCatalogData() {
+            if(!AppState.user) return;
             const catalogRef = collection(db, 'artifacts', AppID, 'public', 'data', 'songs');
             onSnapshot(catalogRef, async (snapshot) => {
                 if (snapshot.empty) {
-                    for (const song of initialMockSongs) {
-                        await setDoc(doc(catalogRef, song.id), song);
+                    try {
+                        for (const song of initialMockSongs) {
+                            await setDoc(doc(catalogRef, song.id), song);
+                        }
+                    } catch (err) {
+                        console.warn("Permission restricted, using local mock data fallback.", err);
+                        AppState.catalog = initialMockSongs;
+                        refreshCurrentView();
                     }
                 } else {
                     const loadedSongs = [];
                     snapshot.forEach(docSnap => loadedSongs.push({ id: docSnap.id, ...docSnap.data() }));
                     AppState.catalog = loadedSongs;
+                    refreshCurrentView();
+                }
+            }, (error) => {
+                console.warn("Catalog fetch error:", error);
+                // Hard fallback so screen never goes blank
+                if(AppState.catalog.length === 0) {
+                    AppState.catalog = initialMockSongs;
+                    refreshCurrentView();
+                }
+            });
+        }
 
-                    if (['home', 'search', 'favorites', 'playlist', 'admin'].includes(AppState.currentView)) {
-                        if(AppState.currentView === 'home') renderHome();
-                        if(AppState.currentView === 'search' && document.getElementById('search-input')?.value) handleSearch({target: document.getElementById('search-input')});
-                        if(AppState.currentView === 'favorites') renderFavorites();
-                        if(AppState.currentView === 'playlist') renderPlaylistView(document.querySelector('h2')?.innerText || '');
-                        if(AppState.currentView === 'admin') renderAdmin();
-                        lucide.createIcons();
-                        renderActiveStates();
+        function loadArtistsData() {
+            if(!AppState.user) return;
+            const artistsRef = collection(db, 'artifacts', AppID, 'public', 'data', 'artists');
+            onSnapshot(artistsRef, async (snapshot) => {
+                if (snapshot.empty) {
+                    try {
+                        for (const artist of initialMockArtists) {
+                            await setDoc(doc(artistsRef, artist.id), artist);
+                        }
+                    } catch (err) {
+                        AppState.artists = initialMockArtists;
+                        refreshCurrentView();
                     }
+                } else {
+                    const loadedArtists = [];
+                    snapshot.forEach(docSnap => loadedArtists.push({ id: docSnap.id, ...docSnap.data() }));
+                    AppState.artists = loadedArtists;
+                    refreshCurrentView();
+                }
+            }, (error) => {
+                console.warn("Artists fetch error:", error);
+                if(AppState.artists.length === 0) {
+                    AppState.artists = initialMockArtists;
+                    refreshCurrentView();
                 }
             });
         }
@@ -827,7 +885,7 @@
                     AppState.playlists = data.playlists || [];
                     AppState.playHistory = data.playHistory || {};
                 } else {
-                    setDoc(userRef, { favorites: [], playlists: [], playHistory: {} });
+                    setDoc(userRef, { favorites: [], playlists: [], playHistory: {} }).catch(e => console.warn(e));
                 }
                 renderSidebarPlaylists();
                 
@@ -836,17 +894,32 @@
 
                 updateLikeButtonUI();
                 renderActiveStates();
-            });
+            }, (err) => console.warn("User data error:", err));
         }
 
         function loadTrendingData() {
+            if(!AppState.user) return;
             const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
             trendingUnsubscribe = onSnapshot(trendingRef, (docSnap) => {
                 if (docSnap.exists()) {
                     AppState.trendingStats = docSnap.data() || { playCounts: {}, listenTime: {} };
                 }
                 if(AppState.currentView === 'home') renderHome();
-            });
+            }, (err) => console.warn("Trending stats error:", err));
+        }
+
+        function refreshCurrentView() {
+            if (['home', 'search', 'favorites', 'playlist', 'admin', 'artists'].includes(AppState.currentView) || AppState.currentView.startsWith('artist-detail')) {
+                if(AppState.currentView === 'home') renderHome();
+                if(AppState.currentView === 'search' && document.getElementById('search-input')?.value) handleSearch({target: document.getElementById('search-input')});
+                if(AppState.currentView === 'artists') renderArtists();
+                if(AppState.currentView === 'artist-detail') renderArtistDetail(document.querySelector('h2')?.innerText || '');
+                if(AppState.currentView === 'favorites') renderFavorites();
+                if(AppState.currentView === 'playlist') renderPlaylistView(document.querySelector('h2')?.innerText || '');
+                if(AppState.currentView === 'admin') renderAdmin();
+                lucide.createIcons();
+                renderActiveStates();
+            }
         }
 
         async function saveUserData() {
@@ -891,7 +964,7 @@
                 const secs = window.currentListenSecs;
                 
                 const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
-                setDoc(trendingRef, { listenTime: { [id]: increment(secs) } }, { merge: true }).catch(console.error);
+                setDoc(trendingRef, { listenTime: { [id]: increment(secs) } }, { merge: true }).catch(console.warn);
             }
             window.currentListenSecs = 0;
         }
@@ -918,6 +991,8 @@
                 switch (view) {
                     case 'home': renderHome(); break;
                     case 'search': renderSearch(); break;
+                    case 'artists': renderArtists(); break;
+                    case 'artist-detail': renderArtistDetail(data); break;
                     case 'favorites': renderFavorites(); break;
                     case 'liked-view': renderLikedView(); break;
                     case 'playlist': renderPlaylistView(data); break;
@@ -954,13 +1029,23 @@
         };
 
         function renderHome() {
-            if(AppState.catalog.length === 0) return;
+            // BULLETPROOF LOADING STATE: prevents completely blank screens during async fetch
+            if(AppState.catalog.length === 0) {
+                els.contentArea.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-[60vh] text-brand-500">
+                        <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4"></i>
+                        <p class="text-gray-400 font-medium animate-pulse">Loading catalog...</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return; 
+            }
             
             const catalog = AppState.catalog;
             
             // Trending explicitly uses our new algorithm `getTrendingScore`
             const trending = [...catalog].sort((a, b) => getTrendingScore(b.id) - getTrendingScore(a.id)).slice(0, 10);
-            
+            const dailyHits = [...trending].slice(0, 8); 
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
             // --- Vibe Match (Predictive Engine) ---
@@ -980,7 +1065,7 @@
             
             let vibeMatch = [];
             if (topGenres.length > 0) {
-                // Find songs they like the genre of, but haven't played much (less than 3 times)
+                // Find songs they like the genre of, but haven't played much
                 vibeMatch = catalog.filter(s => topGenres.includes(s.genre) && (AppState.playHistory[s.id] || 0) < 3);
                 vibeMatch = vibeMatch.sort(() => 0.5 - Math.random()).slice(0, 10);
             }
@@ -1027,28 +1112,27 @@
                 }).join('');
 
             const html = `
-                <div class="relative w-full h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-10 group cursor-pointer shadow-xl border border-white/5">
-                    <div class="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-dark-900/70 to-transparent z-10 flex flex-col justify-center p-6 md:p-12">
-                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2 drop-shadow-md">Evolve Your Sound</span>
-                        <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-3 drop-shadow-lg tracking-tight">Unlimited<br/>Vibes.</h2>
-                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2 drop-shadow-md">Hit play and let our algorithm serve you an endless stream of pure music.</p>
-                        
-                        <div class="mt-6 flex flex-wrap items-center gap-4">
-                            <button onclick="playAll()" class="bg-brand-500 hover:bg-brand-400 text-white px-6 py-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20">
-                                <i data-lucide="shuffle" class="w-5 h-5 mr-2"></i> Endless Radio
+                <div class="relative w-full h-48 md:h-64 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-8 group cursor-pointer shadow-xl" onclick="playQueue(${JSON.stringify(trending).replace(/"/g, '&quot;')}, 0)">
+                    <div class="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-dark-900/60 to-transparent z-10 flex flex-col justify-center p-6 md:p-10">
+                        <span class="text-xs font-bold tracking-widest uppercase text-brand-400 mb-2 drop-shadow-md">Daily Update</span>
+                        <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-3 drop-shadow-lg">Global Top 50</h2>
+                        <p class="text-gray-300 max-w-sm text-sm md:text-base line-clamp-2 drop-shadow-md">The most played tracks across the Aura universe in the last 24 hours.</p>
+                        <div class="mt-4 flex flex-wrap items-center gap-4">
+                            <button onclick="event.stopPropagation(); playAll()" class="bg-brand-500 hover:bg-brand-400 text-white px-5 py-2.5 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20 text-sm">
+                                <i data-lucide="shuffle" class="w-4 h-4 mr-2"></i> Endless Radio
                             </button>
                         </div>
                     </div>
-                    <img src="${trending[0]?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80'}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-[20s] hover:scale-110">
+                    <img src="${trending[0]?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80'}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay group-hover:scale-105 transition-transform duration-700">
                 </div>
 
                 <section>
                     <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
                         <i data-lucide="flame" class="text-brand-400 w-5 h-5"></i>
-                        Trending Now
+                        Most Played in 24 Hours
                     </h3>
                     <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
-                        ${trending.map((song, i) => SongCardLarge(song, trending, i)).join('')}
+                        ${dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('')}
                     </div>
                 </section>
 
@@ -1117,6 +1201,111 @@
             lucide.createIcons();
             renderActiveStates();
         };
+
+        // --- Artists Logic ---
+        function renderArtists() {
+            const artistsList = [...AppState.artists].sort((a,b) => a.name.localeCompare(b.name));
+            
+            // Calculate song counts dynamically
+            artistsList.forEach(a => {
+                a.songCount = AppState.catalog.filter(s => s.artist === a.name).length;
+            });
+            
+            window._currentArtistsList = artistsList;
+
+            els.contentArea.innerHTML = `
+                <div class="sticky top-12 md:top-0 z-10 bg-dark-900/95 backdrop-blur-xl pt-2 pb-6 -mx-5 px-5 md:mx-0 md:px-0 transition-all duration-300">
+                    <div class="relative w-full max-w-3xl mx-auto">
+                        <i data-lucide="search" class="absolute left-5 top-4 text-gray-400 w-6 h-6"></i>
+                        <input type="text" id="artist-search-input" placeholder="Find an artist..." class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-brand-500 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleArtistSearch(event)">
+                    </div>
+                </div>
+                <h2 class="text-3xl font-black mb-8 tracking-tight mt-2">All Artists</h2>
+                <div id="artists-results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
+                    ${renderArtistCards(artistsList)}
+                </div>
+            `;
+        }
+
+        window.renderArtistCards = (list) => {
+            if(list.length === 0) return '<div class="col-span-full text-center text-gray-500 py-10 font-medium">No artists found.</div>';
+            return list.map(artist => `
+                <div class="flex flex-col items-center gap-3 group cursor-pointer" onclick="navigate('artist-detail', '${artist.name.replace(/'/g, "\\'")}')">
+                    <div class="w-full aspect-square rounded-full overflow-hidden shadow-lg border-4 border-transparent group-hover:border-brand-500 transition-all duration-300 bg-dark-800">
+                        <img src="${artist.cover}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <div class="text-center w-full px-2">
+                        <h4 class="font-bold text-sm md:text-base text-white truncate group-hover:text-brand-400 transition-colors">${artist.name}</h4>
+                        <p class="text-[11px] md:text-xs text-gray-400 font-medium">${artist.songCount} track${artist.songCount > 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.handleArtistSearch = (e) => {
+            const query = e.target.value.toLowerCase();
+            const container = document.getElementById('artists-results');
+            if(!window._currentArtistsList) return;
+            
+            const filtered = window._currentArtistsList.filter(a => a.name.toLowerCase().includes(query));
+            container.innerHTML = renderArtistCards(filtered);
+            lucide.createIcons();
+        };
+
+        function renderArtistDetail(artistName) {
+            const artistSongs = AppState.catalog.filter(s => s.artist === artistName);
+            if(artistSongs.length === 0) return;
+            
+            const cover = artistSongs[0].cover;
+            
+            // Calculate total plays strictly for this artist
+            const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.playCounts?.[song.id] || 0), 0);
+            
+            // Sort their songs by popularity
+            const sortedSongs = [...artistSongs].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+
+            els.contentArea.innerHTML = `
+                <div class="flex items-center gap-4 mb-6 md:hidden">
+                    <button onclick="navigate('artists')" class="p-2 bg-dark-800 rounded-full hover:bg-dark-700 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <span class="font-bold text-lg truncate">Artist Profile</span>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-end gap-8 mb-10 mt-2">
+                    <div class="w-40 h-40 md:w-56 md:h-56 rounded-full shadow-2xl overflow-hidden shrink-0 border-4 border-dark-800 ring-2 ring-white/10 bg-dark-800">
+                        <img src="${cover}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="mt-2 md:mt-0 flex-1 min-w-0 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="badge-check" class="w-6 h-6 text-blue-400"></i>
+                            <p class="text-sm font-bold uppercase tracking-[0.15em] text-white/70">Verified Artist</p>
+                        </div>
+                        <h2 class="text-4xl md:text-7xl font-black mb-4 tracking-tight truncate w-full" title="${artistName}">${artistName}</h2>
+                        <div class="flex items-center gap-3 text-sm text-gray-300 font-medium truncate">
+                            <span class="bg-white/10 px-3 py-1 rounded-full text-white">${totalPlays.toLocaleString()} total plays</span>
+                            <span class="text-gray-500 shrink-0">•</span>
+                            <span class="shrink-0">${artistSongs.length} tracks</span>
+                        </div>
+                        <div class="flex items-center gap-4 mt-8">
+                            <button onclick="playQueue(${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
+                                <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
+                            </button>
+                            <button onclick="playQueue([...${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}].sort(()=>0.5-Math.random()), 0)" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist">
+                                <i data-lucide="shuffle" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 class="text-2xl font-bold mb-6 tracking-tight flex items-center gap-2">
+                    <i data-lucide="bar-chart-2" class="text-brand-400 w-6 h-6"></i>
+                    Popular Tracks
+                </h3>
+                <div class="space-y-1 md:space-y-2 mb-10">
+                    ${sortedSongs.map((song, i) => SongListItem(song, sortedSongs, i)).join('')}
+                </div>
+            `;
+        }
 
         function renderFavorites() {
             // New Mobile-First Library View
@@ -1206,7 +1395,6 @@
         }
 
         function renderPlaylistView(playlistId) {
-            // Find by name or id due to how navigation might pass it
             const playlist = AppState.playlists.find(p => p.id === playlistId || p.name === playlistId);
             if (!playlist) return;
             const pSongs = playlist.songs.map(id => AppState.catalog.find(s => s.id === id)).filter(Boolean);
@@ -1283,21 +1471,28 @@
             `;
         }
 
-        function renderAdmin() {
-            els.contentArea.innerHTML = `
-                <div class="max-w-6xl mx-auto mt-4 pb-20">
-                    <div class="flex items-center gap-4 mb-8">
-                        <button onclick="navigate('settings')" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                        </button>
-                        <h2 class="text-3xl font-black tracking-tight">Admin Dashboard</h2>
-                    </div>
+        // --- Admin Logic & Renders ---
+        window.adminTab = 'songs';
+        window.switchAdminTab = (tab) => {
+            window.adminTab = tab;
+            renderAdmin();
+            lucide.createIcons();
+        };
 
+        function renderAdmin() {
+            const isSongs = window.adminTab === 'songs';
+            
+            let adminContent = '';
+            
+            if (isSongs) {
+                adminContent = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <!-- Upload Form -->
-                        <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5">
-                            <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="database" class="text-brand-400"></i> Add External Song</h3>
+                        <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5 shadow-xl">
+                            <h3 id="form-title" class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="music" class="text-brand-400"></i> Add External Song</h3>
                             <form id="upload-song-form" class="space-y-4" onsubmit="handleUploadSong(event)">
+                                <input type="hidden" id="edit-song-id" value="">
+                                
                                 <div class="p-4 bg-brand-900/10 rounded-xl border border-brand-500/20 mb-2">
                                     <label class="text-xs text-brand-400 font-bold uppercase tracking-wider mb-1 block">GitHub Pages / Base URL (Optional)</label>
                                     <input type="url" id="up-base-url" placeholder="https://yourusername.github.io/repo/" class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-brand-500 outline-none text-white transition-colors">
@@ -1310,7 +1505,11 @@
                                 </div>
                                 <div>
                                     <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Artist</label>
-                                    <input type="text" id="up-artist" required placeholder="Artist Name" class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
+                                    <input type="text" id="up-artist" list="artist-list" required placeholder="Select existing or type a new artist..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
+                                    <datalist id="artist-list">
+                                        ${AppState.artists.map(a => `<option value="${a.name}">`).join('')}
+                                    </datalist>
+                                    <p class="text-[10px] text-gray-500 mt-1">Pick from the list or type a new name to auto-create.</p>
                                 </div>
                                 <div class="grid grid-cols-3 gap-4">
                                     <div class="col-span-1">
@@ -1337,17 +1536,26 @@
                                     <input type="text" id="up-audio-url" required placeholder="song.mp3 OR https://..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand-500 outline-none text-white">
                                 </div>
 
-                                <button type="submit" id="upload-btn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-xl transition-all mt-4 shadow-lg shadow-brand-500/20">Add Song to Catalog</button>
+                                <div class="flex gap-3 mt-4">
+                                    <button type="button" id="cancel-edit-btn" onclick="cancelEditSong()" class="hidden flex-1 bg-dark-700 hover:bg-dark-600 text-white font-bold py-4 rounded-xl transition-all shadow-lg">Cancel</button>
+                                    <button type="submit" id="upload-btn" class="flex-[2] bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-brand-500/20">Add Song to Catalog</button>
+                                </div>
                             </form>
                         </div>
 
                         <!-- Manage Catalog -->
-                        <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5 flex flex-col h-[600px] lg:h-auto max-h-[800px]">
-                            <h3 class="text-xl font-bold mb-6 flex items-center gap-2 shrink-0"><i data-lucide="database" class="text-brand-400"></i> Manage Catalog</h3>
-                            <div class="flex-1 overflow-y-auto hide-scrollbar space-y-2 pr-2">
+                        <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5 flex flex-col h-[600px] lg:h-auto max-h-[800px] shadow-xl">
+                            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 shrink-0"><i data-lucide="database" class="text-brand-400"></i> Manage Catalog</h3>
+                            
+                            <div class="mb-4 relative shrink-0">
+                                <i data-lucide="search" class="absolute left-3 top-3 text-gray-400 w-4 h-4"></i>
+                                <input type="text" placeholder="Search songs to edit or delete..." class="w-full bg-dark-900/80 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-brand-500 text-white transition-colors" onkeyup="filterAdminCatalog(event)">
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto hide-scrollbar space-y-2 pr-2" id="admin-catalog-list">
                                 ${AppState.catalog.map(song => `
-                                    <div class="bg-dark-900/50 p-3 rounded-xl flex items-center gap-4 border border-white/5 hover:bg-white/5 transition-colors">
-                                        <img src="${song.cover}" class="w-12 h-12 rounded-lg object-cover shrink-0">
+                                    <div class="admin-catalog-item bg-dark-900/50 p-3 rounded-xl flex items-center gap-4 border border-white/5 hover:bg-white/5 transition-colors" data-search="${song.title} ${song.artist} ${song.genre}">
+                                        <img src="${song.cover}" loading="lazy" class="w-12 h-12 rounded-lg object-cover shrink-0 bg-dark-800">
                                         <div class="flex-1 overflow-hidden">
                                             <div class="font-bold text-sm text-white truncate">
                                                 ${song.title}
@@ -1355,26 +1563,187 @@
                                             </div>
                                             <div class="text-xs text-gray-400 truncate">${song.artist}</div>
                                         </div>
-                                        <button onclick="deleteCatalogSong('${song.id}')" class="p-2 text-gray-500 hover:text-red-500 transition-colors bg-white/5 rounded-lg shrink-0">
-                                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                        </button>
+                                        <div class="flex gap-1 shrink-0">
+                                            <button onclick="editCatalogSong('${song.id}')" class="p-2 text-gray-500 hover:text-blue-400 transition-colors bg-white/5 hover:bg-white/10 rounded-lg" title="Edit Song">
+                                                <i data-lucide="edit-2" class="w-5 h-5"></i>
+                                            </button>
+                                            <button onclick="deleteCatalogSong('${song.id}')" class="p-2 text-gray-500 hover:text-red-500 transition-colors bg-white/5 hover:bg-white/10 rounded-lg" title="Delete Song">
+                                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 `).join('')}
                                 ${AppState.catalog.length === 0 ? '<div class="text-center text-gray-500 py-10 font-medium">Catalog is empty</div>' : ''}
                             </div>
                         </div>
                     </div>
+                `;
+            } else {
+                adminContent = `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Add Artist Form -->
+                        <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5 shadow-xl">
+                            <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="user-plus" class="text-brand-400"></i> Add New Artist</h3>
+                            <form id="upload-artist-form" class="space-y-4" onsubmit="handleAddArtist(event)">
+                                <div>
+                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Artist Name</label>
+                                    <input type="text" id="up-artist-name" required placeholder="E.g. The Weeknd" class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm mt-1 focus:border-brand-500 outline-none text-white">
+                                </div>
+                                <div class="pt-2">
+                                    <label class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 block">Cover Image URL</label>
+                                    <input type="url" id="up-artist-cover" required placeholder="https://..." class="w-full bg-dark-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand-500 outline-none text-white">
+                                </div>
+                                <button type="submit" id="upload-artist-btn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-xl transition-all mt-4 shadow-lg shadow-brand-500/20">Add Artist</button>
+                            </form>
+                        </div>
+
+                        <!-- Manage Artists -->
+                        <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5 flex flex-col h-[600px] lg:h-auto max-h-[800px] shadow-xl">
+                            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 shrink-0"><i data-lucide="users" class="text-brand-400"></i> Manage Artists</h3>
+                            
+                            <div class="mb-4 relative shrink-0">
+                                <i data-lucide="search" class="absolute left-3 top-3 text-gray-400 w-4 h-4"></i>
+                                <input type="text" placeholder="Search artists..." class="w-full bg-dark-900/80 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-brand-500 text-white transition-colors" onkeyup="filterAdminArtists(event)">
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto hide-scrollbar space-y-2 pr-2">
+                                ${AppState.artists.map(artist => `
+                                    <div class="admin-artist-item bg-dark-900/50 p-3 rounded-xl flex items-center gap-4 border border-white/5 hover:bg-white/5 transition-colors" data-search="${artist.name}">
+                                        <img src="${artist.cover}" loading="lazy" class="w-12 h-12 rounded-full object-cover shrink-0 bg-dark-800">
+                                        <div class="flex-1 overflow-hidden">
+                                            <div class="font-bold text-sm text-white truncate">${artist.name}</div>
+                                        </div>
+                                        <button onclick="deleteAdminArtist('${artist.id}')" class="p-2 text-gray-500 hover:text-red-500 transition-colors bg-white/5 hover:bg-white/10 rounded-lg shrink-0">
+                                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                                ${AppState.artists.length === 0 ? '<div class="text-center text-gray-500 py-10 font-medium">No artists found</div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            els.contentArea.innerHTML = `
+                <div class="max-w-6xl mx-auto mt-4 pb-20">
+                    <div class="flex items-center gap-4 mb-6">
+                        <button onclick="navigate('settings')" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        </button>
+                        <h2 class="text-3xl font-black tracking-tight">Admin Dashboard</h2>
+                    </div>
+
+                    <div class="flex gap-2 mb-8 bg-dark-900/50 p-1.5 rounded-xl border border-white/5 w-fit">
+                        <button onclick="switchAdminTab('songs')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${isSongs ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Manage Songs</button>
+                        <button onclick="switchAdminTab('artists')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${!isSongs ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Manage Artists</button>
+                    </div>
+
+                    ${adminContent}
                 </div>
             `;
         }
 
+        // --- Fast Admin Search Filters ---
+        window.filterAdminCatalog = (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.admin-catalog-item').forEach(el => {
+                const text = el.dataset.search.toLowerCase();
+                el.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        };
+
+        window.filterAdminArtists = (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.admin-artist-item').forEach(el => {
+                const text = el.dataset.search.toLowerCase();
+                el.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        };
+
         // --- Admin Handlers ---
+        window.editCatalogSong = (id) => {
+            const song = AppState.catalog.find(s => s.id === id);
+            if(!song) return;
+            
+            document.getElementById('edit-song-id').value = song.id;
+            document.getElementById('up-title').value = song.title;
+            document.getElementById('up-artist').value = song.artist;
+            document.getElementById('up-genre').value = song.genre;
+            document.getElementById('up-color').value = song.color || '#8b5cf6';
+            document.getElementById('up-badge').value = song.badge || '';
+            document.getElementById('up-base-url').value = ''; 
+            document.getElementById('up-cover-url').value = song.cover;
+            document.getElementById('up-audio-url').value = song.src;
+            
+            document.getElementById('upload-btn').innerText = "Update Song Details";
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+            document.getElementById('form-title').innerHTML = `<i data-lucide="edit" class="text-brand-400"></i> Edit Song Details`;
+            lucide.createIcons();
+            
+            document.getElementById('upload-song-form').scrollIntoView({behavior: 'smooth', block: 'start'});
+        };
+
+        window.cancelEditSong = () => {
+            document.getElementById('upload-song-form').reset();
+            document.getElementById('edit-song-id').value = '';
+            document.getElementById('upload-btn').innerText = "Add Song to Catalog";
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+            document.getElementById('form-title').innerHTML = `<i data-lucide="music" class="text-brand-400"></i> Add External Song`;
+            lucide.createIcons();
+        };
+
+        window.handleAddArtist = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('upload-artist-btn');
+            const name = document.getElementById('up-artist-name').value.trim();
+            let coverUrl = document.getElementById('up-artist-cover').value.trim();
+
+            const formatGitUrl = (url) => {
+                if(!url) return url;
+                if(url.includes('github.com') && url.includes('/blob/')) {
+                    return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+                }
+                return url;
+            };
+            coverUrl = formatGitUrl(coverUrl);
+
+            btn.disabled = true;
+            btn.innerText = "Adding...";
+
+            try {
+                const artistId = 'a_' + Date.now();
+                await setDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'artists', artistId), {
+                    id: artistId, name, cover: coverUrl
+                });
+                showToast("Artist successfully created!");
+                e.target.reset();
+            } catch (error) {
+                console.error("Database error:", error);
+                showToast("Failed to add artist: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Add Artist";
+            }
+        };
+
+        window.deleteAdminArtist = async (artistId) => {
+            if(!confirm("Are you sure you want to permanently delete this artist?")) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'artists', artistId));
+                showToast("Artist deleted");
+            } catch (err) {
+                showToast("Failed to delete: " + err.message);
+            }
+        };
+
         window.handleUploadSong = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('upload-btn');
 
+            const editId = document.getElementById('edit-song-id').value;
             const title = document.getElementById('up-title').value.trim();
-            const artist = document.getElementById('up-artist').value.trim();
+            const artist = document.getElementById('up-artist').value.trim(); 
             const genre = document.getElementById('up-genre').value.trim();
             const color = document.getElementById('up-color').value;
             const badge = document.getElementById('up-badge').value.trim();
@@ -1409,37 +1778,44 @@
             }
 
             btn.disabled = true;
-            btn.innerText = "Adding to Database...";
+            btn.innerText = editId ? "Updating Database..." : "Adding to Database...";
 
             try {
-                const songId = 's_' + Date.now();
-                const newSong = {
-                    id: songId,
+                const songData = {
                     title, artist, genre, color,
                     cover: coverUrl,
                     src: audioUrl,
-                    badge: badge || null,
-                    date: new Date().toISOString().split('T')[0]
+                    badge: badge || null
                 };
 
-                const catalogRef = doc(db, 'artifacts', AppID, 'public', 'data', 'songs', songId);
-                await setDoc(catalogRef, newSong);
-
-                showToast("Song successfully added to catalog!");
+                if (editId) {
+                    await setDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'songs', editId), songData, { merge: true });
+                    showToast("Song updated successfully!");
+                } else {
+                    const songId = 's_' + Date.now();
+                    songData.id = songId;
+                    songData.date = new Date().toISOString().split('T')[0];
+                    await setDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'songs', songId), songData);
+                    showToast("Song successfully added to catalog!");
+                }
                 
-                document.getElementById('up-title').value = '';
-                document.getElementById('up-artist').value = '';
-                document.getElementById('up-genre').value = '';
-                document.getElementById('up-badge').value = '';
-                document.getElementById('up-cover-url').value = '';
-                document.getElementById('up-audio-url').value = '';
+                // Auto-create artist if they typed a new one
+                const artistExists = AppState.artists.find(a => a.name.toLowerCase() === artist.toLowerCase());
+                if (!artistExists) {
+                    const artistId = 'a_' + Date.now();
+                    await setDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'artists', artistId), {
+                        id: artistId, name: artist, cover: coverUrl 
+                    });
+                    showToast(`New artist "${artist}" auto-created!`);
+                }
+                
+                cancelEditSong(); // Clear the form and reset buttons
                 
             } catch (error) {
                 console.error("Database error:", error);
-                showToast("Failed to add song: " + error.message);
-            } finally {
+                showToast("Failed to save song: " + error.message);
                 btn.disabled = false;
-                btn.innerText = "Add Song to Catalog";
+                btn.innerText = editId ? "Update Song Details" : "Add Song to Catalog";
             }
         };
 
@@ -1498,7 +1874,7 @@
             <div class="min-w-[130px] w-[130px] md:min-w-[160px] md:w-[160px] snap-center group cursor-pointer" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
                 <div class="relative overflow-hidden rounded-xl mb-3 shadow-lg bg-dark-800 aspect-square">
                     ${song.badge ? `<div class="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider z-10 shadow-md">${song.badge}</div>` : ''}
-                    <img src="${song.cover}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                    <img src="${song.cover}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <div class="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center shadow-lg translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                             <i data-lucide="play" class="w-5 h-5 text-white fill-current ml-1"></i>
@@ -1513,7 +1889,7 @@
         const SongCardSmall = (song, queue, index) => `
             <div class="bg-dark-800/50 hover:bg-dark-700/80 p-3 rounded-xl flex items-center gap-4 transition-colors group cursor-pointer border border-transparent hover:border-white/5" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
                 <div class="relative w-14 h-14 rounded-md overflow-hidden shrink-0">
-                    <img src="${song.cover}" class="w-full h-full object-cover">
+                    <img src="${song.cover}" loading="lazy" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                          <i data-lucide="play" class="w-5 h-5 text-white fill-current ml-0.5"></i>
                     </div>
@@ -1834,7 +2210,6 @@
             if (AppState.catalog.length === 0) return;
             
             if (AppState.isShuffle) {
-                // Endless Shuffle: Pick completely random song from entire catalog, insert next
                 let available = AppState.catalog.filter(s => s.id !== AppState.queue[AppState.currentIndex]?.id);
                 if(available.length === 0) available = AppState.catalog;
                 
@@ -1842,17 +2217,15 @@
                 AppState.queue.splice(AppState.currentIndex + 1, 0, randomSong);
                 AppState.currentIndex++;
             } else {
-                // Smart Auto-Play if we hit the end of the queue
                 if (AppState.currentIndex >= AppState.queue.length - 1) {
                     const currentSong = AppState.queue[AppState.currentIndex];
                     let suggestions = AppState.catalog.filter(s => s.genre === currentSong?.genre && s.id !== currentSong?.id);
                     
-                    // 30% chance to wildcard jump to a completely different genre for freshness!
                     if (suggestions.length === 0 || Math.random() > 0.7) {
                         suggestions = AppState.catalog.filter(s => s.id !== currentSong?.id);
                     }
                     
-                    if (suggestions.length === 0) suggestions = AppState.catalog; // Extreme fallback
+                    if (suggestions.length === 0) suggestions = AppState.catalog; 
                     
                     const nextSong = suggestions[Math.floor(Math.random() * suggestions.length)];
                     AppState.queue.push(nextSong);
