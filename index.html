@@ -600,6 +600,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        window.db = db; // Export to window for global access if needed
         const AppID = 'dmin-dbe58'; 
 
         // --- Initial Seed Data ---
@@ -1856,11 +1857,9 @@
         };
 
         function renderAdmin() {
-            const isSongs = window.adminTab === 'songs';
-            
             let adminContent = '';
             
-            if (isSongs) {
+            if (window.adminTab === 'songs') {
                 adminContent = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <!-- Upload Form -->
@@ -1963,7 +1962,7 @@
                         </div>
                     </div>
                 `;
-            } else {
+            } else if (window.adminTab === 'artists') {
                 adminContent = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <!-- Add Artist Form -->
@@ -2008,6 +2007,40 @@
                         </div>
                     </div>
                 `;
+            } else if (window.adminTab === 'backup') {
+                adminContent = `
+                    <div class="glass-panel rounded-2xl p-6 md:p-8 border border-white/5 shadow-xl">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i data-lucide="database-backup" class="text-brand-400"></i> Backup & Restore</h3>
+                        <p class="text-gray-400 text-sm mb-8 max-w-3xl">Download a complete backup of your songs and artists catalog. You can use this file to restore your entire database if you migrate to a new Firebase server.</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Backup Card -->
+                            <div class="bg-dark-900/50 p-8 rounded-xl border border-white/5 flex flex-col items-center text-center shadow-lg">
+                                <div class="w-16 h-16 bg-brand-500/10 rounded-full flex items-center justify-center mb-6">
+                                    <i data-lucide="download-cloud" class="w-8 h-8 text-brand-400"></i>
+                                </div>
+                                <h4 class="font-bold text-white text-lg mb-2">Export Data</h4>
+                                <p class="text-xs text-gray-500 mb-8 max-w-[200px]">Download a JSON file containing all currently saved songs and artists.</p>
+                                <button onclick="handleDownloadBackup()" class="w-full mt-auto bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-brand-500/20">Download JSON Backup</button>
+                            </div>
+
+                            <!-- Restore Card -->
+                            <div class="bg-dark-900/50 p-8 rounded-xl border border-white/5 flex flex-col items-center text-center shadow-lg">
+                                <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
+                                    <i data-lucide="upload-cloud" class="w-8 h-8 text-blue-400"></i>
+                                </div>
+                                <h4 class="font-bold text-white text-lg mb-2">Import Data</h4>
+                                <p class="text-xs text-gray-500 mb-8 max-w-[200px]">Upload a previously downloaded JSON backup file to restore your database.</p>
+                                <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="handleUploadBackup(event)">
+                                <button onclick="document.getElementById('restore-file-input').click()" class="w-full mt-auto bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/20">Select Backup File</button>
+                            </div>
+                        </div>
+                        
+                        <div id="restore-progress" class="hidden mt-6 text-center bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-xl text-sm font-bold animate-pulse">
+                            Restoring data to Firebase, please wait...
+                        </div>
+                    </div>
+                `;
             }
 
             els.contentArea.innerHTML = `
@@ -2019,9 +2052,10 @@
                         <h2 class="text-3xl font-black tracking-tight">Admin Dashboard</h2>
                     </div>
 
-                    <div class="flex gap-2 mb-8 bg-dark-900/50 p-1.5 rounded-xl border border-white/5 w-fit">
-                        <button onclick="switchAdminTab('songs')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${isSongs ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Manage Songs</button>
-                        <button onclick="switchAdminTab('artists')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${!isSongs ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Manage Artists</button>
+                    <div class="flex gap-2 mb-8 bg-dark-900/50 p-1.5 rounded-xl border border-white/5 w-fit flex-wrap">
+                        <button onclick="switchAdminTab('songs')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${window.adminTab === 'songs' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Manage Songs</button>
+                        <button onclick="switchAdminTab('artists')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${window.adminTab === 'artists' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Manage Artists</button>
+                        <button onclick="switchAdminTab('backup')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${window.adminTab === 'backup' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}">Backup & Restore</button>
                     </div>
 
                     ${adminContent}
@@ -2046,7 +2080,81 @@
             });
         };
 
-        // --- Admin Handlers ---
+        // --- Admin Data Handlers ---
+
+        window.handleDownloadBackup = () => {
+            const dataToExport = {
+                version: "1.0",
+                timestamp: new Date().toISOString(),
+                songs: AppState.catalog,
+                artists: AppState.artists
+            };
+            
+            const jsonString = JSON.stringify(dataToExport, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `aura_music_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast("Backup downloaded successfully!");
+        };
+
+        window.handleUploadBackup = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if(!confirm("Are you sure you want to restore? This will upload the backup data into your current Firebase database.")) {
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.songs || !data.artists) {
+                        throw new Error("Invalid backup file structure. Missing songs or artists.");
+                    }
+
+                    const progressEl = document.getElementById('restore-progress');
+                    if(progressEl) progressEl.classList.remove('hidden');
+
+                    let processedSongs = 0;
+                    let processedArtists = 0;
+
+                    // Import Artists
+                    for (const artist of data.artists) {
+                        await setDoc(doc(window.db, 'artifacts', AppID, 'public', 'data', 'artists', artist.id), artist);
+                        processedArtists++;
+                    }
+
+                    // Import Songs
+                    for (const song of data.songs) {
+                        await setDoc(doc(window.db, 'artifacts', AppID, 'public', 'data', 'songs', song.id), song);
+                        processedSongs++;
+                    }
+
+                    if(progressEl) progressEl.classList.add('hidden');
+                    showToast(`Restore complete! ${processedSongs} songs and ${processedArtists} artists imported.`);
+                    event.target.value = ''; 
+
+                } catch (error) {
+                    console.error("Restore Error:", error);
+                    const progressEl = document.getElementById('restore-progress');
+                    if(progressEl) progressEl.classList.add('hidden');
+                    showToast("Failed to restore backup: " + error.message);
+                    event.target.value = ''; 
+                }
+            };
+            reader.readAsText(file);
+        };
+
         window.editCatalogSong = (id) => {
             const song = AppState.catalog.find(s => s.id === id);
             if(!song) return;
