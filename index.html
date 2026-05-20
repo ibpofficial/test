@@ -251,6 +251,9 @@
                     <button onclick="navigate('artists')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
                         <i data-lucide="mic-2" class="w-6 h-6"></i> Artists
                     </button>
+                    <button onclick="navigate('favorites')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                        <i data-lucide="library" class="w-6 h-6"></i> Library
+                    </button>
                     <button onclick="navigate('liked-view')" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all">
                         <div class="w-6 h-6 bg-gradient-to-br from-brand-500 to-brand-800 rounded flex items-center justify-center shrink-0 shadow-sm shadow-brand-500/20">
                             <i data-lucide="heart" class="w-3.5 h-3.5 text-white fill-current"></i>
@@ -320,18 +323,18 @@
     <!-- ========================================== -->
 
     <!-- Desktop Full Screen View (PC Immersive Player) -->
-    <div id="desktop-fullscreen-view" class="fixed top-0 left-0 right-0 bottom-[90px] z-[45] flex-col items-center justify-center transition-all duration-500 overflow-hidden bg-dark-900 opacity-0 pointer-events-none hidden md:flex">
+    <div id="desktop-fullscreen-view" class="fixed top-0 left-0 right-0 bottom-[90px] z-[45] flex-col transition-all duration-500 overflow-y-auto hide-scrollbar bg-dark-900 opacity-0 pointer-events-none hidden md:block">
         <!-- Blurred Background -->
-        <div id="dfs-bg" class="absolute inset-0 bg-cover bg-center opacity-40 blur-[80px] scale-110 transition-all duration-1000"></div>
-        <div class="absolute inset-0 bg-black/20"></div>
+        <div id="dfs-bg" class="fixed inset-0 bg-cover bg-center opacity-40 blur-[80px] scale-110 transition-all duration-1000 pointer-events-none"></div>
+        <div class="fixed inset-0 bg-black/20 pointer-events-none"></div>
         
         <!-- Collapse Button -->
-        <button onclick="toggleDesktopFullScreen()" class="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10 hover:scale-105 active:scale-95">
+        <button onclick="toggleDesktopFullScreen()" class="fixed top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-[60] hover:scale-105 active:scale-95">
             <i data-lucide="minimize-2" class="w-6 h-6 text-white"></i>
         </button>
 
-        <!-- Content -->
-        <div class="relative z-10 flex items-center justify-center w-full max-w-6xl gap-16 px-12">
+        <!-- Player Main Content -->
+        <div class="relative z-10 flex items-center justify-center w-full max-w-6xl gap-16 px-12 min-h-full mx-auto py-20 shrink-0">
             <img src="" class="js-cover-art w-80 h-80 lg:w-[400px] lg:h-[400px] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-[1.02] object-cover bg-dark-800">
             <div class="flex flex-col flex-1 min-w-0">
                 <span class="text-brand-400 font-bold tracking-[0.2em] uppercase mb-4 text-sm drop-shadow-md">Now Playing</span>
@@ -355,6 +358,15 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- DFS Suggestions -->
+        <div class="relative z-10 w-full max-w-6xl mx-auto px-12 pb-32 shrink-0 hidden" id="dfs-suggestions-container">
+            <div class="w-full h-px bg-white/10 mb-8"></div>
+            <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-6 h-6 text-brand-400"></i> Suggested Next
+            </h3>
+            <div id="dfs-suggestions-list" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
         </div>
     </div>
 
@@ -381,13 +393,13 @@
     </div>
 
     <!-- 2. Mobile Full Screen Player (Overlay) -->
-    <div id="mobile-full-player" class="fixed inset-0 z-[60] bg-dark-900 flex flex-col translate-y-full transition-transform duration-300 ease-out md:hidden shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+    <div id="mobile-full-player" class="fixed inset-0 z-[60] bg-dark-900 translate-y-full transition-transform duration-300 ease-out md:hidden shadow-[-10px_0_30px_rgba(0,0,0,0.5)] overflow-y-auto hide-scrollbar block">
         <!-- Dynamic Blur Background -->
-        <div id="mfp-bg" class="absolute inset-0 bg-gradient-to-b from-dark-800 to-dark-900 opacity-80 z-0 transition-colors duration-700"></div>
-        <div class="absolute inset-0 bg-black/40 z-0 backdrop-blur-[60px]"></div>
+        <div id="mfp-bg" class="fixed inset-0 bg-gradient-to-b from-dark-800 to-dark-900 opacity-80 z-0 transition-colors duration-700 pointer-events-none"></div>
+        <div class="fixed inset-0 bg-black/40 z-0 backdrop-blur-[60px] pointer-events-none"></div>
         
-        <!-- Content -->
-        <div class="relative z-10 flex flex-col h-full px-6 pt-10 pb-6 md:pb-8">
+        <!-- Main Player Content (Min Height 100vh) -->
+        <div class="relative z-10 flex flex-col min-h-[100dvh] px-6 pt-10 pb-6 shrink-0">
             <!-- Header -->
             <div class="flex justify-between items-center mb-4 md:mb-6 shrink-0">
                 <button onclick="collapsePlayer()" class="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="chevron-down" class="w-7 h-7 text-white"></i></button>
@@ -455,6 +467,15 @@
                     <button class="p-2 hover:text-white transition-colors"><i data-lucide="share-2" class="w-5 h-5"></i></button>
                 </div>
             </div>
+        </div>
+
+        <!-- Mobile Suggestions Section (Scrollable below) -->
+        <div class="relative z-10 px-6 pb-20 shrink-0 hidden" id="mfp-suggestions-container">
+            <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-8"></div>
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-5 h-5 text-brand-400"></i> Suggested Next
+            </h3>
+            <div id="mfp-suggestions-list" class="space-y-2"></div>
         </div>
     </div>
 
@@ -610,6 +631,7 @@
         // --- App State ---
         window.AppState = {
             user: null,
+            userName: 'Listener',
             catalog: [],
             artists: [],
             favorites: [],
@@ -821,13 +843,17 @@
         onAuthStateChanged(auth, async (user) => {
             if (user && (user.emailVerified || !user.providerData.some(p => p.providerId === 'password'))) {
                 AppState.user = user;
+                
+                // Set Smart Name
+                const rawName = user.displayName || user.email.split('@')[0];
+                AppState.userName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+                
                 els.authScreen.classList.add('hidden');
                 els.mainApp.classList.remove('hidden');
                 
-                const name = user.displayName || user.email.split('@')[0];
-                const pic = user.photoURL || `https://ui-avatars.com/api/?name=${name}&background=121212&color=fff`;
+                const pic = user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}&background=121212&color=fff`;
                 
-                document.getElementById('user-name').innerText = name;
+                document.getElementById('user-name').innerText = AppState.userName;
                 document.getElementById('user-avatar').src = pic;
                 document.getElementById('mobile-avatar').src = pic;
 
@@ -1017,6 +1043,49 @@
             const catalog = AppState.catalog;
             if(catalog.length === 0) return;
 
+            // --- Your Daily Aura (Evolving Ultimate Mix) ---
+            let ultimateSongs = [];
+            const topPlayed = Object.entries(userHistory).sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0, 5);
+            ultimateSongs.push(...topPlayed);
+
+            const genreCounts = {};
+            Object.entries(userHistory).forEach(([songId, count]) => {
+                const song = catalog.find(s => s.id === songId);
+                if(song && song.genre) genreCounts[song.genre] = (genreCounts[song.genre] || 0) + count;
+            });
+            const topGenres = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0, 2);
+
+            if(topGenres.length > 0) {
+                let gSongs = catalog.filter(s => topGenres.includes(s.genre) && !ultimateSongs.includes(s.id));
+                gSongs = shuffleArray([...gSongs]).slice(0, 5);
+                ultimateSongs.push(...gSongs.map(s=>s.id));
+            }
+
+            let discSongs = catalog.filter(s => !ultimateSongs.includes(s.id) && (!userHistory[s.id] || userHistory[s.id] === 0));
+            discSongs = shuffleArray([...discSongs]).slice(0, 5);
+            ultimateSongs.push(...discSongs.map(s=>s.id));
+
+            if(ultimateSongs.length < 5) {
+                let filler = catalog.filter(s=>!ultimateSongs.includes(s.id));
+                filler = shuffleArray([...filler]).slice(0, 10 - ultimateSongs.length);
+                ultimateSongs.push(...filler.map(s=>s.id));
+            }
+
+            // Deduplicate in case of overlapping queries
+            ultimateSongs = [...new Set(ultimateSongs)].filter(id => catalog.find(s=>s.id===id));
+
+            if(ultimateSongs.length > 0) {
+                mixes.push({ 
+                    id: 'mix_ultimate', 
+                    name: 'Your Daily Aura', 
+                    desc: 'A personalized mix that evolves with your taste, updated constantly.', 
+                    songs: ultimateSongs, 
+                    colorFrom: 'from-brand-600', 
+                    colorTo: 'to-indigo-900',
+                    isAutoMix: true
+                });
+            }
+
             // 1. Your Top Artists Mix
             const artistCounts = {};
             Object.entries(userHistory).forEach(([songId, count]) => {
@@ -1039,13 +1108,6 @@
             }
 
             // 2. Genre Mixes (Pop, Electronic, etc.)
-            const genreCounts = {};
-            Object.entries(userHistory).forEach(([songId, count]) => {
-                const song = catalog.find(s => s.id === songId);
-                if(song && song.genre) genreCounts[song.genre] = (genreCounts[song.genre] || 0) + count;
-            });
-            const topGenres = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0, 2);
-            
             topGenres.forEach((genre, idx) => {
                 let genreSongs = catalog.filter(s => s.genre === genre);
                 if(genreSongs.length >= 3) {
@@ -1161,6 +1223,7 @@
             
             // Trending explicitly uses our new algorithm `getTrendingScore`
             const trending = [...catalog].sort((a, b) => getTrendingScore(b.id) - getTrendingScore(a.id)).slice(0, 10);
+            const topTrendingSong = trending[0];
             const dailyHits = [...trending].slice(0, 8); 
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
@@ -1238,16 +1301,72 @@
                 `;
             }
 
+            // --- Trending Poster Banner HTML (Compact Version) ---
+            let trendingBannerHTML = '';
+            if (topTrendingSong) {
+                trendingBannerHTML = `
+                    <div class="relative w-full h-24 md:h-32 rounded-xl overflow-hidden glass-card mb-8 mt-4 group cursor-pointer shadow-lg border border-brand-500/20" onclick="playQueue(${JSON.stringify(catalog).replace(/"/g, '&quot;')}, ${catalog.findIndex(s=>s.id===topTrendingSong.id)})">
+                        <div class="absolute inset-0 bg-gradient-to-r from-dark-900/95 via-dark-900/80 to-transparent z-10 flex items-center p-4 md:p-6">
+                            <div class="flex-1 max-w-md z-20 flex flex-col justify-center">
+                                <span class="text-[10px] md:text-xs font-bold tracking-widest uppercase text-brand-400 mb-1 drop-shadow-md flex items-center gap-1.5">
+                                    <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> #1 Trending Now
+                                </span>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex-1 min-w-0">
+                                        <h2 class="text-lg md:text-2xl font-black text-white truncate drop-shadow-md">${topTrendingSong.title}</h2>
+                                        <p class="text-xs md:text-sm text-gray-300 font-medium truncate">${topTrendingSong.artist}</p>
+                                    </div>
+                                    <button onclick="event.stopPropagation(); playQueue(${JSON.stringify(catalog).replace(/"/g, '&quot;')}, ${catalog.findIndex(s=>s.id===topTrendingSong.id)})" class="bg-brand-500 hover:bg-brand-400 text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0">
+                                        <i data-lucide="play" class="w-4 h-4 md:w-5 md:h-5 fill-current ml-0.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <img src="${topTrendingSong.cover}" class="absolute right-0 top-0 w-[40%] md:w-[30%] h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700 pointer-events-none" style="-webkit-mask-image: linear-gradient(to right, transparent, black 40%); mask-image: linear-gradient(to right, transparent, black 40%);">
+                    </div>
+                `;
+            }
+
+            // --- Your Daily Aura HTML ---
+            const dailyAuraMix = AppState.autoMixes.find(m => m.id === 'mix_ultimate');
+            let dailyAuraHTML = '';
+            if(dailyAuraMix && dailyAuraMix.songs.length > 0) {
+                const covers = dailyAuraMix.songs.slice(0,4).map(id => catalog.find(s=>s.id===id)?.cover).filter(Boolean);
+                dailyAuraHTML = `
+                    <section class="mt-4 mb-10">
+                        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-900 to-dark-900 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 border border-brand-500/20 shadow-2xl cursor-pointer hover:border-brand-500/40 transition-colors" onclick="navigate('auto-mix', 'mix_ultimate')">
+                            <div class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shrink-0 shadow-[0_0_30px_rgba(139,92,246,0.3)] border-4 border-dark-900 z-10 relative flex flex-wrap">
+                                ${covers.map(c=>`<img src="${c}" class="w-1/2 h-1/2 object-cover">`).join('')}
+                                <div class="absolute inset-0 bg-brand-500/20 mix-blend-overlay"></div>
+                            </div>
+                            <div class="flex-1 text-center md:text-left z-10">
+                                <div class="flex items-center justify-center md:justify-start gap-2 mb-1">
+                                    <i data-lucide="sparkles" class="w-4 h-4 text-brand-300 fill-current"></i>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-brand-300">Updated Based On Your Listening</span>
+                                </div>
+                                <h3 class="text-2xl md:text-4xl font-black text-white mb-2">Your Daily Aura</h3>
+                                <p class="text-sm md:text-base text-gray-300 font-medium max-w-xl">A personalized, evolving playlist crafted just for you. Changes as your tastes change.</p>
+                            </div>
+                            <button class="w-14 h-14 bg-white rounded-full flex items-center justify-center shrink-0 hover:scale-110 transition-transform shadow-[0_10px_30px_rgba(255,255,255,0.2)] z-10" onclick="event.stopPropagation(); playQueue(${JSON.stringify(dailyAuraMix.songs.map(id=>catalog.find(s=>s.id===id)).filter(Boolean)).replace(/"/g, '&quot;')}, 0)">
+                                 <i data-lucide="play" class="w-6 h-6 text-black fill-current ml-1"></i>
+                            </button>
+                        </div>
+                    </section>
+                `;
+            }
+
             const html = `
                 ${featuredHTML}
 
-                <!-- Global Play All -->
+                <!-- Global Play All & Personalized Welcome -->
                 <div class="flex items-center justify-between mb-6 ${featuredHTML ? '' : 'mt-4'}">
-                    <h2 class="text-2xl md:text-3xl font-black tracking-tight">Welcome, ${AppState.user.displayName || 'Listener'}</h2>
-                    <button onclick="playAll()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-full flex items-center shadow-lg transition-transform hover:scale-105 font-bold text-sm">
+                    <h2 class="text-2xl md:text-4xl font-black tracking-tight text-white drop-shadow-md">Welcome, ${AppState.userName}</h2>
+                    <button onclick="playAll()" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-full flex items-center shadow-lg transition-transform hover:scale-105 font-bold text-sm shrink-0 ml-4">
                         <i data-lucide="${AppState.isShuffle ? 'shuffle' : 'play'}" class="w-4 h-4 mr-2 ${AppState.isShuffle ? '' : 'fill-current'}"></i> Play All
                     </button>
                 </div>
+                
+                ${dailyAuraHTML}
 
                 <section>
                     <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
@@ -1268,6 +1387,8 @@
                         ${vibeMatch.length > 0 ? vibeMatch.map((song, i) => SongCardLarge(song, vibeMatch, i)).join('') : '<p class="text-gray-500 italic text-sm py-4">Listen to more songs to get personalized matches!</p>'}
                     </div>
                 </section>
+
+                ${trendingBannerHTML}
 
                 ${discoveryTracks.length > 0 ? `
                 <section class="mt-8">
@@ -1530,8 +1651,8 @@
                         <p class="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-1 hidden md:block">Playlist</p>
                         <h2 class="text-3xl md:text-5xl font-black mb-3 tracking-tight truncate">Liked Songs</h2>
                         <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
-                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
-                            <span class="truncate">${AppState.user.displayName || 'You'}</span>
+                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-6 h-6 rounded-full shrink-0">
+                            <span class="truncate">${AppState.userName || 'You'}</span>
                             <span class="text-gray-500 shrink-0">•</span>
                             <span class="shrink-0">${favSongs.length} songs</span>
                         </div>
@@ -1589,8 +1710,8 @@
                         <h2 class="text-3xl md:text-5xl font-black mb-3 tracking-tight truncate" title="${playlist.name}">${playlist.name}</h2>
                         <div class="flex items-center gap-2 text-sm text-gray-300 font-medium truncate">
                             ${isAutoMix ? '<i data-lucide="bot" class="w-5 h-5 text-brand-400 shrink-0"></i> <span>Aura Smart Mix</span>' : `
-                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-6 h-6 rounded-full shrink-0">
-                            <span class="truncate">${AppState.user.displayName || 'You'}</span>`}
+                            <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-6 h-6 rounded-full shrink-0">
+                            <span class="truncate">${AppState.userName || 'You'}</span>`}
                             <span class="text-gray-500 shrink-0">•</span>
                             <span class="shrink-0">${pSongs.length} songs</span>
                         </div>
@@ -1621,9 +1742,9 @@
                     <h2 class="text-3xl font-black mb-8 tracking-tight">Account Settings</h2>
                     
                     <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex items-center gap-6">
-                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.user.email}`}" class="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg object-cover border-2 border-white/10">
+                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg object-cover border-2 border-white/10">
                         <div class="overflow-hidden">
-                            <div class="font-bold text-2xl tracking-tight mb-1 truncate">${AppState.user.displayName || 'Aura User'}</div>
+                            <div class="font-bold text-2xl tracking-tight mb-1 truncate">${AppState.userName || 'Aura User'}</div>
                             <div class="text-gray-400 font-medium truncate">${AppState.user.email}</div>
                         </div>
                     </div>
@@ -2335,6 +2456,7 @@
             if(AppState.queue[AppState.currentIndex]?.id === songId) {
                 updateLikeButtonUI();
             }
+            renderPlayerSuggestions(AppState.queue[AppState.currentIndex]);
             lucide.createIcons();
             renderActiveStates();
         };
@@ -2420,7 +2542,70 @@
             AppState.audio.src = song.src;
             AppState.audio.play().catch(e => console.error(e));
             recordPlay(song.id);
+            
+            renderPlayerSuggestions(song);
         }
+        
+        window.renderPlayerSuggestions = (currentSong) => {
+            if (!currentSong) return;
+            
+            let similar = AppState.catalog.filter(s => s.genre === currentSong.genre && s.id !== currentSong.id);
+            if (similar.length < 4) {
+                const others = AppState.catalog.filter(s => s.id !== currentSong.id && !similar.includes(s));
+                similar = [...similar, ...shuffleArray(others)].slice(0, 8);
+            } else {
+                similar = shuffleArray(similar).slice(0, 8);
+            }
+
+            const mfpContainer = document.getElementById('mfp-suggestions-container');
+            const dfsContainer = document.getElementById('dfs-suggestions-container');
+            
+            if (similar.length > 0) {
+                if (mfpContainer) mfpContainer.classList.remove('hidden');
+                if (dfsContainer) dfsContainer.classList.remove('hidden');
+
+                const mfpList = document.getElementById('mfp-suggestions-list');
+                if (mfpList) {
+                    mfpList.innerHTML = similar.map((song, i) => `
+                        <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer" onclick="playQueue(${JSON.stringify(similar).replace(/"/g, '&quot;')}, ${i}); setTimeout(() => document.getElementById('mobile-full-player').scrollTo({top:0, behavior:'smooth'}), 100);">
+                            <img src="${song.cover}" class="w-12 h-12 rounded-lg object-cover bg-dark-800 shrink-0">
+                            <div class="flex-1 overflow-hidden">
+                                <h4 class="font-bold text-sm text-white truncate group-hover:text-brand-400 transition-colors">${song.title}</h4>
+                                <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
+                            </div>
+                            <button class="p-3 text-gray-400 hover:text-white" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
+                                <i data-lucide="heart" class="w-5 h-5 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : ''}"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+
+                const dfsList = document.getElementById('dfs-suggestions-list');
+                if (dfsList) {
+                    dfsList.innerHTML = similar.map((song, i) => `
+                        <div class="bg-white/5 hover:bg-white/10 p-4 rounded-2xl flex items-center gap-4 transition-colors group cursor-pointer border border-transparent hover:border-white/10 backdrop-blur-md" onclick="playQueue(${JSON.stringify(similar).replace(/"/g, '&quot;')}, ${i}); setTimeout(() => document.getElementById('desktop-fullscreen-view').scrollTo({top:0, behavior:'smooth'}), 100);">
+                            <div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow-md">
+                                <img src="${song.cover}" loading="lazy" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <i data-lucide="play" class="w-6 h-6 text-white fill-current ml-1"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 overflow-hidden">
+                                <h4 class="font-bold text-base text-white truncate mb-0.5 group-hover:text-brand-400 transition-colors">${song.title}</h4>
+                                <p class="text-sm text-gray-400 font-medium truncate">${song.artist}</p>
+                            </div>
+                            <button class="p-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
+                                <i data-lucide="heart" class="w-5 h-5 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : ''}"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                if (mfpContainer) mfpContainer.classList.add('hidden');
+                if (dfsContainer) dfsContainer.classList.add('hidden');
+            }
+            lucide.createIcons();
+        };
 
         window.togglePlay = (e) => {
             if(e) e.stopPropagation();
@@ -2610,7 +2795,7 @@
         let isVerticalSwipe = false;
         
         els.mobileFullPlayer.addEventListener('touchstart', e => {
-            if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button')) return; 
+            if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button') || e.target.closest('#mfp-suggestions-container')) return; 
             
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
@@ -2623,7 +2808,7 @@
         }, {passive: true});
         
         els.mobileFullPlayer.addEventListener('touchmove', e => {
-            if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button')) return;
+            if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button') || e.target.closest('#mfp-suggestions-container')) return;
             
             touchCurrentX = e.touches[0].clientX;
             touchCurrentY = e.touches[0].clientY;
@@ -2635,20 +2820,25 @@
                 if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
                     isHorizontalSwipe = true;
                 } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
-                    isVerticalSwipe = true;
+                    // Start vertical swipe-to-dismiss only if scrolled to the absolute top of the player
+                    if (els.mobileFullPlayer.scrollTop <= 5 && deltaY > 0) {
+                        isVerticalSwipe = true;
+                    }
                 }
             }
 
             if (isVerticalSwipe && deltaY > 0) { 
+                e.preventDefault(); // Stop native scrolling from interfering
                 els.mobileFullPlayer.style.transform = `translateY(${deltaY}px)`;
             } else if (isHorizontalSwipe) {
+                e.preventDefault(); // Stop native scrolling from interfering
                 const cover = document.getElementById('mfp-cover-art');
                 if(cover) cover.style.transform = `translateX(${deltaX * 0.6}px)`;
             }
-        }, {passive: true});
+        }, {passive: false}); // passive false allows preventDefault
         
         els.mobileFullPlayer.addEventListener('touchend', e => {
-            if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button')) return;
+            if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button') || e.target.closest('#mfp-suggestions-container')) return;
             
             els.mobileFullPlayer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             const cover = document.getElementById('mfp-cover-art');
