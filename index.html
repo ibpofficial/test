@@ -141,6 +141,15 @@
             background: linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%);
         }
 
+        /* Analytics Heatmap blocks */
+        .heatmap-block {
+            transition: all 0.3s ease;
+        }
+        .heatmap-block:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+
         .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .player-hidden { display: none !important; }
@@ -271,11 +280,11 @@
                 </nav>
 
                 <div class="p-4 border-t border-white/5">
-                    <button onclick="navigate('settings')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all">
-                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full object-cover bg-dark-800">
+                    <button onclick="navigate('settings')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all group">
+                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full object-cover bg-dark-800 border-2 border-transparent group-hover:border-brand-500 transition-colors">
                         <div class="text-left flex-1 overflow-hidden">
                             <div id="user-name" class="text-sm font-semibold truncate text-white">User</div>
-                            <div class="text-[11px] truncate text-brand-400" id="sidebar-timer-status">Settings</div>
+                            <div class="text-[11px] truncate text-brand-400" id="sidebar-timer-status">Profile & Analytics</div>
                         </div>
                     </button>
                 </div>
@@ -291,7 +300,7 @@
                         </div>
                         <span class="text-xl font-bold tracking-tight">Aura</span>
                     </div>
-                    <button onclick="navigate('settings')" class="hover:scale-105 transition-transform relative">
+                    <button onclick="navigate('settings')" class="hover:scale-105 transition-transform relative border-2 border-transparent hover:border-brand-500 rounded-full">
                         <img id="mobile-avatar" src="https://ui-avatars.com/api/?name=User" class="w-9 h-9 rounded-full border border-white/10 shadow-lg bg-dark-800 object-cover">
                         <div id="mobile-timer-dot" class="absolute -top-1 -right-1 w-3 h-3 bg-brand-500 rounded-full border-2 border-dark-900 hidden"></div>
                     </button>
@@ -347,6 +356,11 @@
                     <!-- Add to Playlist Button (DFS) -->
                     <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all hover:scale-105 ml-2" title="Add to Playlist">
                         <i data-lucide="list-plus" class="w-8 h-8 text-white"></i>
+                    </button>
+                    <!-- Start Smart Radio -->
+                    <button onclick="if(AppState.queue.length > 0) playSmartRadio(AppState.queue[AppState.currentIndex])" class="p-3 bg-white/10 hover:bg-brand-600 rounded-full transition-all hover:scale-105 ml-2 text-white flex items-center gap-2 group" title="Start Smart Radio">
+                        <i data-lucide="radio" class="w-8 h-8"></i>
+                        <span class="text-sm font-bold opacity-0 group-hover:opacity-100 hidden md:block transition-opacity overflow-hidden w-0 group-hover:w-auto">Smart Mix</span>
                     </button>
                     
                     <!-- Small playing animation -->
@@ -404,9 +418,9 @@
             <div class="flex justify-between items-center mb-4 md:mb-6 shrink-0">
                 <button onclick="collapsePlayer()" class="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="chevron-down" class="w-7 h-7 text-white"></i></button>
                 <span class="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-white/80 drop-shadow-md text-center" id="mfp-context">PLAYING FROM AURA</span>
-                <!-- Add to Playlist Button (MFP) -->
-                <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-2 -mr-2 hover:bg-white/10 rounded-full transition-colors" title="Add to Playlist">
-                    <i data-lucide="list-plus" class="w-6 h-6 text-white"></i>
+                <!-- Smart Radio Button (MFP) -->
+                <button onclick="if(AppState.queue.length > 0) playSmartRadio(AppState.queue[AppState.currentIndex])" class="p-2 -mr-2 hover:bg-white/10 rounded-full transition-colors" title="Smart Radio based on this track">
+                    <i data-lucide="radio" class="w-6 h-6 text-brand-400"></i>
                 </button>
             </div>
 
@@ -460,7 +474,7 @@
                 </div>
                 <!-- Bottom Icons -->
                 <div class="flex justify-between items-center text-white/60 px-2">
-                    <button class="p-2 hover:text-white transition-colors"><i data-lucide="monitor-speaker" class="w-5 h-5"></i></button>
+                    <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-2 hover:text-white transition-colors"><i data-lucide="list-plus" class="w-5 h-5"></i></button>
                     <button onclick="toggleQueue(); collapsePlayer()" class="p-2 hover:text-white transition-colors relative">
                         <i data-lucide="list-music" class="w-5 h-5"></i>
                     </button>
@@ -524,7 +538,7 @@
         <!-- Right: Extras -->
         <div class="w-1/3 flex justify-end items-center gap-4">
             <button onclick="toggleQueue()" class="text-gray-400 hover:text-white p-2 transition-colors hover:bg-white/5 rounded-full" title="Queue"><i data-lucide="list-music" class="w-5 h-5"></i></button>
-            <button class="text-gray-400 hover:text-white p-2 transition-colors hover:bg-white/5 rounded-full"><i data-lucide="monitor-speaker" class="w-5 h-5"></i></button>
+            <button onclick="if(AppState.queue.length > 0) playSmartRadio(AppState.queue[AppState.currentIndex])" class="text-gray-400 hover:text-brand-400 p-2 transition-colors hover:bg-brand-500/10 rounded-full" title="Start Smart Radio"><i data-lucide="radio" class="w-5 h-5"></i></button>
             <div class="flex items-center gap-2 w-28 group ml-2">
                 <i data-lucide="volume-2" class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"></i>
                 <input type="range" id="volume-bar" min="0" max="1" step="0.01" value="1" class="desktop-slider w-full" oninput="setVolume(event)">
@@ -637,9 +651,11 @@
             artists: [],
             favorites: [],
             playlists: [],
-            autoMixes: [], // Dynamically generated mixes
+            autoMixes: [], 
             playHistory: {},
+            dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}, // Analytics heatmap data (Sun-Sat)
             trendingStats: {}, // Stores: { playCounts: {}, listenTime: {} }
+            communityUsers: [], // Other users on the platform
             currentView: 'home',
             
             queue: [],
@@ -658,7 +674,7 @@
             sleepTimerEndTime: null
         };
 
-        // --- Active Listen Time Tracking & Sleep Timer ---
+        // --- Active Listen Time Tracking & Analytics ---
         window.currentListenSecs = 0;
         window.listenTimer = null;
         window.lastPlayedSongId = null;
@@ -863,6 +879,10 @@
                 loadArtistsData();
                 await loadUserData();
                 loadTrendingData();
+                loadCommunityData();
+                
+                syncPublicProfile(); // Sync this user's profile to the public directory
+                
                 navigate('home');
             } else {
                 AppState.user = null;
@@ -880,6 +900,7 @@
         // --- Data Fetching & Bulletproof Error Handling ---
         let trendingUnsubscribe = null;
         let userUnsubscribe = null;
+        let communityUnsubscribe = null;
 
         function loadCatalogData() {
             if(!AppState.user) return;
@@ -938,6 +959,18 @@
             });
         }
 
+        function loadCommunityData() {
+            if(!AppState.user) return;
+            const communityRef = collection(db, 'artifacts', AppID, 'public', 'data', 'users');
+            communityUnsubscribe = onSnapshot(communityRef, (snapshot) => {
+                const users = [];
+                snapshot.forEach(docSnap => users.push(docSnap.data()));
+                // Filter out self
+                AppState.communityUsers = users.filter(u => u.uid !== AppState.user.uid);
+                if (AppState.currentView === 'settings') renderSettings();
+            }, (error) => console.warn("Community fetch error:", error));
+        }
+
         async function loadUserData() {
             if (!AppState.user) return;
             const uid = AppState.user.uid;
@@ -949,8 +982,9 @@
                     AppState.favorites = data.favorites || [];
                     AppState.playlists = data.playlists || [];
                     AppState.playHistory = data.playHistory || {};
+                    AppState.dailyPlayStats = data.dailyPlayStats || {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0};
                 } else {
-                    setDoc(userRef, { favorites: [], playlists: [], playHistory: {} }).catch(e => console.warn(e));
+                    setDoc(userRef, { favorites: [], playlists: [], playHistory: {}, dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0} }).catch(e => console.warn(e));
                 }
                 
                 generateAutoMixes(); // Generate custom AI mixes when history changes
@@ -976,13 +1010,14 @@
         }
 
         function refreshCurrentView() {
-            if (['home', 'search', 'favorites', 'playlist', 'admin', 'artists', 'auto-mix'].includes(AppState.currentView) || AppState.currentView.startsWith('artist-detail')) {
+            if (['home', 'search', 'favorites', 'playlist', 'admin', 'artists', 'auto-mix', 'settings'].includes(AppState.currentView) || AppState.currentView.startsWith('artist-detail')) {
                 if(AppState.currentView === 'home') renderHome();
                 if(AppState.currentView === 'search' && document.getElementById('search-input')?.value) handleSearch({target: document.getElementById('search-input')});
                 if(AppState.currentView === 'artists') renderArtists();
                 if(AppState.currentView === 'artist-detail') renderArtistDetail(document.querySelector('h2')?.innerText || '');
                 if(AppState.currentView === 'favorites') renderFavorites();
                 if(AppState.currentView === 'playlist' || AppState.currentView === 'auto-mix') renderPlaylistView(document.querySelector('h2')?.innerText || '');
+                if(AppState.currentView === 'settings') renderSettings();
                 if(AppState.currentView === 'admin') renderAdmin();
                 lucide.createIcons();
                 renderActiveStates();
@@ -994,7 +1029,9 @@
             const userRef = doc(db, 'artifacts', AppID, 'users', AppState.user.uid, 'profile', 'data');
             await setDoc(userRef, {
                 favorites: AppState.favorites,
-                playlists: AppState.playlists
+                playlists: AppState.playlists,
+                playHistory: AppState.playHistory,
+                dailyPlayStats: AppState.dailyPlayStats
             }, { merge: true });
         }
 
@@ -1016,13 +1053,20 @@
                 await setDoc(trendingRef, { playCounts: { [songId]: increment(1) } }, { merge: true });
             } catch (err) {}
             
-            // 2. Record User Local History
+            // 2. Record User Local History & Analytics
             const userRef = doc(db, 'artifacts', AppID, 'users', AppState.user.uid, 'profile', 'data');
+            const dayOfWeek = new Date().getDay();
             try {
-                await setDoc(userRef, { playHistory: { [songId]: increment(1) } }, { merge: true });
+                const updates = { 
+                    [`playHistory.${songId}`]: increment(1),
+                    [`dailyPlayStats.${dayOfWeek}`]: increment(1)
+                };
+                await setDoc(userRef, updates, { merge: true });
                 AppState.playHistory[songId] = (AppState.playHistory[songId] || 0) + 1;
-                // Since history changed, regenerate mixes quietly in background
+                AppState.dailyPlayStats[dayOfWeek] = (AppState.dailyPlayStats[dayOfWeek] || 0) + 1;
+                
                 generateAutoMixes(); 
+                syncPublicProfile(); // Keep profile up to date
             } catch (err) {}
         }
 
@@ -1035,6 +1079,55 @@
                 setDoc(trendingRef, { listenTime: { [id]: increment(secs) } }, { merge: true }).catch(console.warn);
             }
             window.currentListenSecs = 0;
+        }
+
+        // User Profile Analysis Helper
+        function getUserTasteProfile() {
+            if(Object.keys(AppState.playHistory || {}).length === 0) return { topGenre: 'Discovery', cluster: 'New Listener', topArtist: 'Exploring' };
+            
+            const genreCounts = {};
+            const artistCounts = {};
+            
+            Object.entries(AppState.playHistory).forEach(([songId, count]) => {
+                const song = AppState.catalog.find(s => s.id === songId);
+                if (song) {
+                    genreCounts[song.genre] = (genreCounts[song.genre] || 0) + count;
+                    artistCounts[song.artist] = (artistCounts[song.artist] || 0) + count;
+                }
+            });
+            
+            const topGenre = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a])[0] || 'Unknown';
+            const topArtist = Object.keys(artistCounts).sort((a,b) => artistCounts[b] - artistCounts[a])[0] || 'Various';
+            
+            let cluster = "Music Fan";
+            if (topGenre.toLowerCase().includes('pop')) cluster = "Mainstream Pop Fan";
+            else if (topGenre.toLowerCase().includes('synth') || topGenre.toLowerCase().includes('electronic')) cluster = "Synthwave Explorer";
+            else if (topGenre.toLowerCase().includes('rock')) cluster = "Rock Enthusiast";
+            else if (topGenre.toLowerCase().includes('hip hop')) cluster = "Hip-Hop Head";
+            else if (topGenre.toLowerCase().includes('jazz') || topGenre.toLowerCase().includes('lo-fi')) cluster = "Chill Vibes Seeker";
+            
+            return { topGenre, topArtist, cluster };
+        }
+
+        async function syncPublicProfile() {
+            if(!AppState.user || AppState.catalog.length === 0) return;
+            const taste = getUserTasteProfile();
+            const pic = AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`;
+            
+            try {
+                const publicRef = doc(db, 'artifacts', AppID, 'public', 'data', 'users', AppState.user.uid);
+                await setDoc(publicRef, {
+                    uid: AppState.user.uid,
+                    name: AppState.userName,
+                    photo: pic,
+                    tasteCluster: taste.cluster,
+                    topGenre: taste.topGenre,
+                    topArtist: taste.topArtist,
+                    lastActive: new Date().toISOString()
+                }, {merge: true});
+            } catch (err) {
+                console.warn("Could not sync public profile");
+            }
         }
 
         // --- Advanced Auto-Mix Algorithm ---
@@ -1072,7 +1165,6 @@
                 ultimateSongs.push(...filler.map(s=>s.id));
             }
 
-            // Deduplicate in case of overlapping queries
             ultimateSongs = [...new Set(ultimateSongs)].filter(id => catalog.find(s=>s.id===id));
 
             if(ultimateSongs.length > 0) {
@@ -1096,7 +1188,7 @@
             const topArtists = Object.keys(artistCounts).sort((a,b) => artistCounts[b] - artistCounts[a]).slice(0, 3);
             if(topArtists.length > 0) {
                 let artistSongs = catalog.filter(s => topArtists.includes(s.artist));
-                artistSongs = shuffleArray([...artistSongs]).slice(0, 20); // up to 20 songs
+                artistSongs = shuffleArray([...artistSongs]).slice(0, 20);
                 mixes.push({ 
                     id: 'mix_artists', 
                     name: 'Top Artists Mix', 
@@ -1131,23 +1223,33 @@
                 }
             });
 
-            // 3. Discovery Mix (Songs they have never heard)
-            let discoverySongs = catalog.filter(s => !userHistory[s.id] || userHistory[s.id] === 0);
-            if(discoverySongs.length > 0) {
-                discoverySongs = shuffleArray([...discoverySongs]).slice(0, 15);
-                mixes.push({ 
-                    id: 'mix_discover', 
-                    name: 'Discovery Mix', 
-                    desc: 'Expand your horizons with unheard tracks.', 
-                    songs: discoverySongs.map(s=>s.id),
-                    colorFrom: 'from-amber-500', 
-                    colorTo: 'to-red-900',
-                    isAutoMix: true
-                });
-            }
-
             AppState.autoMixes = mixes;
         }
+
+        // Smart Radio Function
+        window.playSmartRadio = (seedSong) => {
+            if (!seedSong) return;
+            const catalog = AppState.catalog;
+            
+            // 1. Exact Genre Matches (High Weight)
+            let queue = catalog.filter(s => s.genre === seedSong.genre && s.id !== seedSong.id);
+            queue = shuffleArray(queue);
+            
+            // 2. Add Artist Matches if any exist
+            let artistMatches = catalog.filter(s => s.artist === seedSong.artist && s.id !== seedSong.id && !queue.includes(s));
+            queue = [...artistMatches, ...queue];
+            
+            // 3. User's historical favorites matching the mood
+            let userFavs = AppState.favorites.map(id => catalog.find(s=>s.id===id)).filter(Boolean);
+            userFavs = userFavs.filter(s => s.genre === seedSong.genre && !queue.includes(s));
+            queue = [...queue, ...shuffleArray(userFavs)].slice(0, 30);
+            
+            // Insert seed song at the start
+            queue.unshift(seedSong);
+            
+            showToast(`Started Smart Radio based on ${seedSong.title}`);
+            playQueue(queue, 0);
+        };
 
         // --- Navigation & Rendering ---
         window.navigate = (view, data = null) => {
@@ -1204,6 +1306,15 @@
             }
             playQueue(tracksToPlay, 0);
         };
+        
+        window.playGenre = (genre) => {
+            let tracks = AppState.catalog.filter(s => s.genre === genre);
+            tracks = tracks.sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+            if(AppState.isShuffle) tracks = shuffleArray(tracks);
+            
+            showToast(`Playing ${genre} hits`);
+            playQueue(tracks, 0);
+        };
 
         function renderHome() {
             if(AppState.catalog.length === 0) {
@@ -1218,17 +1329,12 @@
             }
             
             const catalog = AppState.catalog;
-            
-            // Featured Tracks from Admin
             const featuredTracks = catalog.filter(s => s.isFeatured);
-            
-            // Trending explicitly uses our new algorithm `getTrendingScore`
             const trending = [...catalog].sort((a, b) => getTrendingScore(b.id) - getTrendingScore(a.id)).slice(0, 10);
             const topTrendingSong = trending[0];
             const dailyHits = [...trending].slice(0, 8); 
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
-            // --- Vibe Match (Predictive Engine Upgrade) ---
             let userGenresMap = {};
             AppState.favorites.forEach(id => {
                 const song = catalog.find(s => s.id === id);
@@ -1250,11 +1356,10 @@
                 vibeMatch = shuffleArray(catalog.filter(s => !topGenres.includes(s.genre))).slice(0, 10);
             }
 
-            // --- DISCOVERY: New sounds (Zero plays) ---
             let discoveryTracks = catalog.filter(s => !AppState.playHistory[s.id] || AppState.playHistory[s.id] === 0);
             discoveryTracks = shuffleArray(discoveryTracks).slice(0, 10);
 
-            // --- Dynamic Genre Shelves ---
+            // Dynamic Genre Shelves with Smart Play buttons
             const genresMap = {};
             catalog.forEach(song => {
                 if (song.genre) {
@@ -1265,12 +1370,16 @@
 
             const genreSectionsHTML = Object.keys(genresMap).sort().filter(genre => genresMap[genre].length > 0)
                 .map(genre => {
-                    const genreSongs = genresMap[genre].slice(0, 10);
+                    let genreSongs = [...genresMap[genre]].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+                    genreSongs = genreSongs.slice(0, 10);
                     return `
                         <section class="mt-8">
-                            <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
-                                ${genre}
-                            </h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold tracking-tight">${genre}</h3>
+                                <button onclick="playGenre('${genre}')" class="text-xs font-bold bg-white/5 hover:bg-brand-500/20 hover:text-brand-400 text-gray-400 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5">
+                                    <i data-lucide="play" class="w-3 h-3 fill-current"></i> Play All
+                                </button>
+                            </div>
                             <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
                                 ${genreSongs.map((song, i) => SongCardLarge(song, genreSongs, i)).join('')}
                             </div>
@@ -1278,10 +1387,9 @@
                     `;
                 }).join('');
 
-            // Featured Hero Section (Only shows if admin featured tracks exist)
             let featuredHTML = '';
             if(featuredTracks.length > 0) {
-                const ft = featuredTracks[0]; // Spotlight the first one
+                const ft = featuredTracks[0];
                 featuredHTML = `
                     <div class="relative w-full h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden glass-card mb-8 group cursor-pointer shadow-xl border border-brand-500/30" onclick="playQueue(${JSON.stringify(featuredTracks).replace(/"/g, '&quot;')}, 0)">
                         <div class="absolute inset-0 bg-gradient-to-r from-dark-900/95 via-dark-900/70 to-transparent z-10 flex flex-col justify-center p-6 md:p-10">
@@ -1295,6 +1403,9 @@
                                 <button onclick="event.stopPropagation(); playQueue(${JSON.stringify(featuredTracks).replace(/"/g, '&quot;')}, 0)" class="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20 text-sm">
                                     <i data-lucide="play" class="w-5 h-5 mr-2 fill-current"></i> Listen Now
                                 </button>
+                                <button onclick="event.stopPropagation(); playSmartRadio(${JSON.stringify(ft).replace(/"/g, '&quot;')})" class="bg-brand-600/20 backdrop-blur-md hover:bg-brand-600/40 border border-brand-500/50 text-white px-6 py-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 font-bold z-20 text-sm">
+                                    <i data-lucide="radio" class="w-5 h-5 mr-2"></i> Smart Radio
+                                </button>
                             </div>
                         </div>
                         <img src="${ft.cover}" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay group-hover:scale-105 transition-transform duration-700">
@@ -1302,7 +1413,6 @@
                 `;
             }
 
-            // --- Trending Poster Banner HTML (Compact Version) ---
             let trendingBannerHTML = '';
             if (topTrendingSong) {
                 trendingBannerHTML = `
@@ -1328,7 +1438,6 @@
                 `;
             }
 
-            // --- Your Daily Aura HTML ---
             const dailyAuraMix = AppState.autoMixes.find(m => m.id === 'mix_ultimate');
             let dailyAuraHTML = '';
             if(dailyAuraMix && dailyAuraMix.songs.length > 0) {
@@ -1439,7 +1548,8 @@
                 resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-20 font-medium">Browse our entire catalog</div>';
                 return;
             }
-            const results = AppState.catalog.filter(s => s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query) || s.genre.toLowerCase().includes(query));
+            let results = AppState.catalog.filter(s => s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query) || s.genre.toLowerCase().includes(query));
+            results = results.sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
             if (results.length === 0) {
                 resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-20 font-medium">No results found for "'+query+'"</div>';
                 return;
@@ -1501,7 +1611,9 @@
             
             const cover = artistSongs[0].cover;
             const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.playCounts?.[song.id] || 0), 0);
-            const sortedSongs = [...artistSongs].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+            
+            // Explicitly sorting tracks by popularity for this artist
+            window._currentArtistSongs = [...artistSongs].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
 
             els.contentArea.innerHTML = `
                 <div class="flex items-center gap-4 mb-6 md:hidden">
@@ -1526,31 +1638,51 @@
                             <span class="shrink-0">${artistSongs.length} tracks</span>
                         </div>
                         <div class="flex items-center gap-4 mt-8">
-                            <button onclick="playQueue(${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
+                            <button onclick="playQueue(window._currentArtistSongs, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
                                 <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
                             </button>
-                            <button onclick="playQueue(shuffleArray([...${JSON.stringify(sortedSongs).replace(/"/g, '&quot;')}]), 0)" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist">
+                            <button onclick="playQueue(shuffleArray([...window._currentArtistSongs]), 0)" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist">
                                 <i data-lucide="shuffle" class="w-6 h-6"></i>
                             </button>
                         </div>
                     </div>
                 </div>
                 
-                <h3 class="text-2xl font-bold mb-6 tracking-tight flex items-center gap-2">
-                    <i data-lucide="bar-chart-2" class="text-brand-400 w-6 h-6"></i>
-                    Popular Tracks
-                </h3>
-                <div class="space-y-1 md:space-y-2 mb-10">
-                    ${sortedSongs.map((song, i) => SongListItem(song, sortedSongs, i)).join('')}
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <h3 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+                        <i data-lucide="bar-chart-2" class="text-brand-400 w-6 h-6"></i>
+                        Popular Tracks
+                    </h3>
+                    <div class="relative w-full sm:w-64 shrink-0">
+                        <i data-lucide="search" class="absolute left-3 top-2.5 text-gray-500 w-4 h-4"></i>
+                        <input type="text" id="artist-track-search" placeholder="Search in ${artistName}..." class="w-full bg-dark-800/80 border border-white/10 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-brand-500 text-white transition-colors" onkeyup="filterArtistTracks(event)">
+                    </div>
+                </div>
+                
+                <div class="space-y-1 md:space-y-2 mb-10" id="artist-track-list">
+                    ${window._currentArtistSongs.map((song, i) => SongListItem(song, window._currentArtistSongs, i)).join('')}
                 </div>
             `;
         }
+
+        window.filterArtistTracks = (e) => {
+            const query = e.target.value.toLowerCase();
+            const container = document.getElementById('artist-track-list');
+            if(!window._currentArtistSongs) return;
+            const filtered = window._currentArtistSongs.filter(s => s.title.toLowerCase().includes(query) || s.genre.toLowerCase().includes(query));
+            if(filtered.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 py-6 text-sm text-center">No tracks match your search.</div>';
+                return;
+            }
+            container.innerHTML = filtered.map((song, i) => SongListItem(song, filtered, i)).join('');
+            lucide.createIcons();
+            renderActiveStates();
+        };
 
         // --- Library & Mixes UI ---
         function renderFavorites() {
             const favCount = AppState.favorites.length;
             
-            // Made For You (Auto Mixes)
             let mixHTML = '';
             if(AppState.autoMixes && AppState.autoMixes.length > 0) {
                 mixHTML = `
@@ -1734,26 +1866,108 @@
             `;
         }
 
-        // --- Settings & Sleep Timer ---
+        // --- Settings & User Analytics Dashboard ---
         function renderSettings() {
             let timerDisplay = AppState.sleepTimerActive ? 'Active' : 'Off';
+            const taste = getUserTasteProfile();
+            
+            // Heatmap calculation
+            const maxPlaysDay = Math.max(...Object.values(AppState.dailyPlayStats)) || 1;
+            const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const heatmapHTML = daysMap.map((day, i) => {
+                const count = AppState.dailyPlayStats[i];
+                const heightPct = Math.max((count / maxPlaysDay) * 100, 10);
+                const isActiveToday = (new Date().getDay() === i);
+                return `
+                    <div class="flex flex-col items-center gap-2 group flex-1">
+                        <div class="w-full bg-dark-700/50 rounded-md flex items-end justify-center h-24 overflow-hidden relative">
+                            <div class="w-full ${isActiveToday ? 'bg-brand-500' : 'bg-brand-500/50 group-hover:bg-brand-400'} rounded-md heatmap-block transition-all" style="height: ${heightPct}%"></div>
+                        </div>
+                        <span class="text-[10px] text-gray-500 font-bold uppercase ${isActiveToday ? 'text-white' : ''}">${day}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Community HTML
+            let communityHTML = '';
+            if(AppState.communityUsers.length > 0) {
+                communityHTML = AppState.communityUsers.slice(0,6).map(u => `
+                    <div class="bg-dark-800/80 p-3 rounded-xl border border-white/5 flex items-center gap-3 hover:bg-white/5 transition-colors cursor-pointer group">
+                        <img src="${u.photo}" class="w-10 h-10 rounded-full object-cover">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold text-white truncate group-hover:text-brand-400 transition-colors">${u.name}</div>
+                            <div class="text-[10px] text-brand-400 font-medium uppercase tracking-wider truncate">${u.tasteCluster || 'New Listener'}</div>
+                        </div>
+                        <div class="text-xs text-gray-500 shrink-0 flex items-center gap-1" title="Top Artist">
+                            <i data-lucide="mic-2" class="w-3 h-3"></i> <span class="truncate max-w-[60px]">${u.topArtist || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                communityHTML = `<div class="text-sm text-gray-500 p-4">No other users found yet.</div>`;
+            }
             
             els.contentArea.innerHTML = `
-                <div class="max-w-2xl mt-4">
-                    <h2 class="text-3xl font-black mb-8 tracking-tight">Account Settings</h2>
+                <div class="max-w-4xl mx-auto mt-4 pb-10">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+                        <h2 class="text-3xl font-black tracking-tight">Profile & Analytics</h2>
+                        <!-- Official AM Button -->
+                        <a href="https://bpofficial.github.io/am" target="_blank" class="flex items-center gap-3 bg-gradient-to-r from-brand-600 to-indigo-600 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-brand-500/20 hover:scale-105 transition-transform w-fit border border-brand-400/30">
+                            <div class="w-6 h-6 bg-white text-brand-600 rounded-full flex items-center justify-center font-black text-xs leading-none">AM</div>
+                            Official Page
+                        </a>
+                    </div>
                     
-                    <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex items-center gap-6">
-                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg object-cover border-2 border-white/10">
-                        <div class="overflow-hidden">
-                            <div class="font-bold text-2xl tracking-tight mb-1 truncate">${AppState.userName || 'Aura User'}</div>
-                            <div class="text-gray-400 font-medium truncate">${AppState.user.email}</div>
+                    <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex items-center gap-6 shadow-xl relative overflow-hidden">
+                        <div class="absolute -right-10 -bottom-10 opacity-5 pointer-events-none">
+                            <i data-lucide="activity" class="w-48 h-48"></i>
+                        </div>
+                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-20 h-20 md:w-28 md:h-28 rounded-full shadow-2xl object-cover border-4 border-dark-800 ring-2 ring-brand-500/30 relative z-10">
+                        <div class="overflow-hidden relative z-10">
+                            <div class="text-xs text-brand-400 font-bold uppercase tracking-[0.15em] mb-1 flex items-center gap-1.5"><i data-lucide="award" class="w-3.5 h-3.5"></i> ${taste.cluster}</div>
+                            <div class="font-black text-3xl md:text-4xl tracking-tight mb-1 truncate text-white drop-shadow-md">${AppState.userName || 'Aura User'}</div>
+                            <div class="text-gray-400 font-medium text-sm truncate">${AppState.user.email}</div>
                         </div>
                     </div>
 
-                    <!-- Sleep Timer Section -->
+                    <!-- Listening DNA Dashboard -->
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i data-lucide="bar-chart" class="text-brand-400 w-5 h-5"></i> Your Listening DNA</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="glass-card rounded-2xl p-5 border border-white/5">
+                            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 flex justify-between">Top Genre <i data-lucide="music" class="w-4 h-4"></i></div>
+                            <div class="text-2xl font-black text-white truncate text-brand-400">${taste.topGenre}</div>
+                        </div>
+                        <div class="glass-card rounded-2xl p-5 border border-white/5">
+                            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 flex justify-between">Top Artist <i data-lucide="mic-2" class="w-4 h-4"></i></div>
+                            <div class="text-2xl font-black text-white truncate text-pink-400">${taste.topArtist}</div>
+                        </div>
+                        <div class="glass-card rounded-2xl p-5 border border-white/5">
+                            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 flex justify-between">Total Plays <i data-lucide="play-circle" class="w-4 h-4"></i></div>
+                            <div class="text-2xl font-black text-white truncate text-blue-400">${Object.values(AppState.playHistory || {}).reduce((a,b)=>a+b,0)}</div>
+                        </div>
+                    </div>
+
+                    <!-- Heatmap -->
                     <div class="glass-panel rounded-2xl p-6 mb-8 border border-white/5">
+                        <div class="text-sm text-gray-400 font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4 text-brand-400"></i> Weekly Activity Trend
+                        </div>
+                        <div class="flex justify-between items-end gap-2 w-full">
+                            ${heatmapHTML}
+                        </div>
+                    </div>
+
+                    <!-- Community Discover -->
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2 mt-4"><i data-lucide="users" class="text-brand-400 w-5 h-5"></i> Community Discover</h3>
+                    <p class="text-xs text-gray-400 mb-4 font-medium -mt-2">See what other Aura listeners are vibing with.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
+                        ${communityHTML}
+                    </div>
+
+                    <!-- Sleep Timer Section -->
+                    <div class="glass-panel rounded-2xl p-6 mb-8 border border-white/5 mt-4">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="moon" class="text-brand-400 w-5 h-5"></i> Sleep Timer</h3>
+                            <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="moon" class="text-brand-400 w-5 h-5"></i> Sleep Timer</h3>
                             <span id="settings-timer-status" class="text-sm font-bold px-3 py-1 rounded-full ${AppState.sleepTimerActive ? 'bg-brand-500/20 text-brand-400' : 'bg-white/10 text-gray-400'}">${timerDisplay}</span>
                         </div>
                         <p class="text-sm text-gray-400 mb-5">Automatically pause music playback after a set time.</p>
@@ -1765,6 +1979,7 @@
                         </div>
                     </div>
 
+                    <!-- Account Actions -->
                     <div class="space-y-3">
                         ${AppState.isAdmin ? `
                         <button onclick="navigate('admin')" class="w-full bg-brand-600/10 hover:bg-brand-600/20 text-brand-400 px-6 py-4 rounded-xl text-left flex items-center justify-between transition-colors border border-brand-500/20 font-semibold mb-3">
@@ -1795,7 +2010,7 @@
                         statusEl.innerText = "Off";
                         statusEl.className = "text-sm font-bold px-3 py-1 rounded-full bg-white/10 text-gray-400";
                     }
-                    if(sidebarEl) sidebarEl.innerText = "Settings";
+                    if(sidebarEl) sidebarEl.innerText = "Profile & Analytics";
                     return;
                 }
                 const diff = AppState.sleepTimerEndTime - Date.now();
@@ -1818,7 +2033,7 @@
                 AppState.sleepTimerActive = false;
                 showToast("Sleep timer disabled");
                 document.getElementById('mobile-timer-dot').classList.add('hidden');
-                document.getElementById('sidebar-timer-status').innerText = "Settings";
+                document.getElementById('sidebar-timer-status').innerText = "Profile & Analytics";
                 document.getElementById('sidebar-timer-status').classList.remove('text-brand-400');
                 renderSettings();
                 return;
@@ -1838,7 +2053,7 @@
                     clearInterval(window.sleepTimerInterval);
                     AppState.sleepTimerActive = false;
                     document.getElementById('mobile-timer-dot').classList.add('hidden');
-                    document.getElementById('sidebar-timer-status').innerText = "Settings";
+                    document.getElementById('sidebar-timer-status').innerText = "Profile & Analytics";
                     document.getElementById('sidebar-timer-status').classList.remove('text-brand-400');
                     showToast("Sleep timer ended. Playback paused.");
                 }
@@ -2356,7 +2571,7 @@
 
         const SongCardLarge = (song, queue, index) => `
             <div class="min-w-[130px] w-[130px] md:min-w-[160px] md:w-[160px] snap-center group cursor-pointer" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
-                <div class="relative overflow-hidden rounded-xl mb-3 shadow-lg bg-dark-800 aspect-square">
+                <div class="relative overflow-hidden rounded-xl mb-3 shadow-lg bg-dark-800 aspect-square border border-white/5 group-hover:border-brand-500/50 transition-colors">
                     ${song.badge ? `<div class="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider z-10 shadow-md">${song.badge}</div>` : ''}
                     <img src="${song.cover}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -2371,8 +2586,8 @@
         `;
 
         const SongCardSmall = (song, queue, index) => `
-            <div class="bg-dark-800/50 hover:bg-dark-700/80 p-3 rounded-xl flex items-center gap-4 transition-colors group cursor-pointer border border-transparent hover:border-white/5" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
-                <div class="relative w-14 h-14 rounded-md overflow-hidden shrink-0">
+            <div class="bg-dark-800/50 hover:bg-dark-700/80 p-3 rounded-xl flex items-center gap-4 transition-colors group cursor-pointer border border-transparent hover:border-white/5 shadow-sm" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
+                <div class="relative w-14 h-14 rounded-md overflow-hidden shrink-0 shadow-sm border border-white/5">
                     <img src="${song.cover}" loading="lazy" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                          <i data-lucide="play" class="w-5 h-5 text-white fill-current ml-0.5"></i>
@@ -2403,7 +2618,7 @@
 
                 <div class="w-6 md:w-8 text-center text-white text-sm hidden group-hover:block md:group-hover:block shrink-0"><i data-lucide="play" class="song-hover-icon w-4 h-4 fill-current mx-auto"></i></div>
                 
-                <img src="${song.cover}" class="w-10 h-10 md:w-12 md:h-12 rounded-md object-cover bg-dark-800 shrink-0">
+                <img src="${song.cover}" class="w-10 h-10 md:w-12 md:h-12 rounded-md object-cover bg-dark-800 shrink-0 border border-white/5">
                 <div class="flex-1 overflow-hidden">
                     <h4 class="song-title font-bold text-sm text-white truncate mb-0.5">
                         ${song.title}
@@ -2759,7 +2974,7 @@
             if (AppState.catalog.length === 0) return;
             
             if (AppState.isShuffle) {
-                // If Shuffle is on, we pick entirely randomly using the catalog
+                // If Shuffle is on, pick randomly
                 let available = AppState.catalog.filter(s => s.id !== AppState.queue[AppState.currentIndex]?.id);
                 if(available.length === 0) available = AppState.catalog;
                 
@@ -2769,7 +2984,7 @@
             } else {
                 // Not shuffle. Play next in line.
                 if (AppState.currentIndex >= AppState.queue.length - 1) {
-                    // Reached end of current queue line. Auto-fetch a smart suggestion to keep radio alive
+                    // Reached end. Auto-fetch a smart suggestion to keep radio alive
                     const currentSong = AppState.queue[AppState.currentIndex];
                     let suggestions = AppState.catalog.filter(s => s.genre === currentSong?.genre && s.id !== currentSong?.id);
                     
@@ -2928,7 +3143,6 @@
                 if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
                     isHorizontalSwipe = true;
                 } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
-                    // Start vertical swipe-to-dismiss only if scrolled to the absolute top of the player
                     if (els.mobileFullPlayer.scrollTop <= 5 && deltaY > 0) {
                         isVerticalSwipe = true;
                     }
@@ -2936,14 +3150,14 @@
             }
 
             if (isVerticalSwipe && deltaY > 0) { 
-                e.preventDefault(); // Stop native scrolling from interfering
+                e.preventDefault(); 
                 els.mobileFullPlayer.style.transform = `translateY(${deltaY}px)`;
             } else if (isHorizontalSwipe) {
-                e.preventDefault(); // Stop native scrolling from interfering
+                e.preventDefault(); 
                 const cover = document.getElementById('mfp-cover-art');
                 if(cover) cover.style.transform = `translateX(${deltaX * 0.6}px)`;
             }
-        }, {passive: false}); // passive false allows preventDefault
+        }, {passive: false});
         
         els.mobileFullPlayer.addEventListener('touchend', e => {
             if(e.target.tagName.toLowerCase() === 'input' || e.target.closest('button') || e.target.closest('#mfp-suggestions-container')) return;
@@ -3008,6 +3222,7 @@
             signOut(auth);
             if(trendingUnsubscribe) trendingUnsubscribe();
             if(userUnsubscribe) userUnsubscribe();
+            if(communityUnsubscribe) communityUnsubscribe();
             showToast("Signed out successfully");
         };
 
@@ -3016,7 +3231,10 @@
                 try {
                     const uid = auth.currentUser.uid;
                     const userRef = doc(db, 'artifacts', AppID, 'users', uid, 'profile', 'data');
+                    const publicRef = doc(db, 'artifacts', AppID, 'public', 'data', 'users', uid);
+                    
                     await deleteDoc(userRef);
+                    await deleteDoc(publicRef);
                     await deleteUser(auth.currentUser);
                     alert("Your account and all associated data have been permanently deleted.");
                     window.location.reload();
