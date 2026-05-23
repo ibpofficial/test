@@ -478,7 +478,7 @@
                     <button onclick="toggleQueue(); collapsePlayer()" class="p-2 hover:text-white transition-colors relative">
                         <i data-lucide="list-music" class="w-5 h-5"></i>
                     </button>
-                    <button class="p-2 hover:text-white transition-colors"><i data-lucide="share-2" class="w-5 h-5"></i></button>
+                    <button onclick="if(AppState.queue.length > 0) openShareModal(AppState.queue[AppState.currentIndex].id)" class="p-2 hover:text-white transition-colors"><i data-lucide="send" class="w-5 h-5"></i></button>
                 </div>
             </div>
         </div>
@@ -514,6 +514,10 @@
             <!-- Add to Playlist Button (Desktop) -->
             <button onclick="if(AppState.queue.length > 0) openPlaylistModal(AppState.queue[AppState.currentIndex].id)" class="p-2 hover:bg-white/5 rounded-full transition-colors" title="Add to Playlist">
                 <i data-lucide="list-plus" class="w-5 h-5 text-gray-400 hover:text-white"></i>
+            </button>
+            <!-- Share Button (Desktop) -->
+            <button onclick="if(AppState.queue.length > 0) openShareModal(AppState.queue[AppState.currentIndex].id)" class="p-2 hover:bg-white/5 rounded-full transition-colors" title="Share Song">
+                <i data-lucide="send" class="w-5 h-5 text-gray-400 hover:text-white"></i>
             </button>
         </div>
 
@@ -578,6 +582,18 @@
                 <button onclick="handleCreatePlaylist()" class="bg-white text-black px-5 py-3 rounded-xl text-sm font-bold hover:scale-105 transition-transform">Create</button>
             </div>
             <button onclick="closeModal()" class="mt-4 w-full py-3 text-gray-400 hover:text-white text-sm font-semibold transition-colors">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Modal for Sharing Songs -->
+    <div id="share-modal" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-white/10">
+            <h3 class="text-xl font-bold mb-2 flex items-center gap-2"><i data-lucide="send" class="text-brand-400 w-5 h-5"></i> Send to User</h3>
+            <p class="text-xs text-gray-400 mb-5">Share this track directly to their Aura inbox.</p>
+            <div id="share-modal-content" class="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar mb-5">
+                <!-- Community Users injected here -->
+            </div>
+            <button onclick="closeShareModal()" class="mt-4 w-full py-3 bg-dark-700 rounded-xl text-white hover:bg-dark-600 text-sm font-semibold transition-colors">Cancel</button>
         </div>
     </div>
 
@@ -651,14 +667,17 @@
             artists: [],
             favorites: [],
             playlists: [],
+            pinnedArtists: [],
             autoMixes: [], 
             playHistory: {},
             dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}, // Analytics heatmap data (Sun-Sat)
-            trendingStats: {}, // Stores: { playCounts: {}, listenTime: {} }
+            trendingStats: { dailyPlays: {}, dailyTime: {} }, 
             communityUsers: [], // Other users on the platform
+            inbox: [], // Shared songs from others
             currentView: 'home',
             
             queue: [],
+            queueContext: null, // Limits shuffle strictly to an artist or genre
             currentIndex: -1,
             isPlaying: false,
             isShuffle: false,
@@ -667,6 +686,7 @@
             isDesktopFullScreen: false,
             audio: new Audio(),
             songToPlaylistId: null,
+            songToShareId: null,
             isAdmin: false,
             
             // Sleep Timer
@@ -679,6 +699,7 @@
         window.listenTimer = null;
         window.lastPlayedSongId = null;
         window.settingsTimerInterval = null;
+        window.hasRecordedCurrentPlay = false; // Flag to ensure 1 count per song play
 
         // Audio initialization
         AppState.audio.volume = 1;
@@ -690,7 +711,14 @@
             renderActiveStates();
             // Start listen timer
             clearInterval(window.listenTimer);
-            window.listenTimer = setInterval(() => { window.currentListenSecs++; }, 1000);
+            window.listenTimer = setInterval(() => { 
+                window.currentListenSecs++; 
+                // Only record play if listened for 10 seconds accurately!
+                if(window.currentListenSecs === 10 && !window.hasRecordedCurrentPlay && AppState.queue[AppState.currentIndex]) {
+                    recordPlay(AppState.queue[AppState.currentIndex].id);
+                    window.hasRecordedCurrentPlay = true;
+                }
+            }, 1000);
         });
         
         AppState.audio.addEventListener('pause', () => { 
@@ -702,7 +730,6 @@
         });
 
         AppState.audio.addEventListener('ended', () => {
-            saveListenDuration(); 
             if (AppState.isRepeat) {
                 AppState.audio.currentTime = 0;
                 AppState.audio.play();
@@ -739,6 +766,7 @@
             resetMsg: document.getElementById('reset-msg'),
             sidebarPlaylists: document.getElementById('sidebar-playlists'),
             playlistModal: document.getElementById('playlist-modal'),
+            shareModal: document.getElementById('share-modal'),
             createPlaylistModal: document.getElementById('create-playlist-modal')
         };
 
@@ -748,7 +776,7 @@
         window.showToast = (msg) => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = 'bg-dark-800 border border-white/10 text-white px-5 py-3 rounded-full shadow-2xl transform transition-all duration-300 -translate-y-10 opacity-0 text-sm font-medium flex items-center gap-2';
+            toast.className = 'bg-dark-800 border border-white/10 text-white px-5 py-3 rounded-full shadow-2xl transform transition-all duration-300 -translate-y-10 opacity-0 text-sm font-medium flex items-center gap-2 z-[9999]';
             toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-brand-400"></i> ${msg}`;
             container.appendChild(toast);
             lucide.createIcons();
@@ -763,7 +791,6 @@
             }, 3000);
         };
 
-        // Superior Randomizer Algorithm (Fisher-Yates)
         function shuffleArray(array) {
             let currentIndex = array.length, randomIndex;
             while (currentIndex !== 0) {
@@ -774,7 +801,31 @@
             return array;
         }
 
-        // Global Error Handler
+        // Fast Levenshtein Distance for Fuzzy Search
+        function levenshtein(s, t) {
+            if (s === t) return 0;
+            if (s.length === 0) return t.length;
+            if (t.length === 0) return s.length;
+            const v0 = new Array(t.length + 1);
+            const v1 = new Array(t.length + 1);
+            for (let i = 0; i < v0.length; i++) v0[i] = i;
+            for (let i = 0; i < s.length; i++) {
+                v1[0] = i + 1;
+                for (let j = 0; j < t.length; j++) {
+                    const cost = (s[i] === t[j]) ? 0 : 1;
+                    v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
+                }
+                for (let j = 0; j < v0.length; j++) v0[j] = v1[j];
+            }
+            return v1[t.length];
+        }
+
+        function fuzzyMatch(query, text) {
+            query = query.toLowerCase(); text = text.toLowerCase();
+            if (text.includes(query)) return 0; // exact match gets top priority
+            return levenshtein(query, text);
+        }
+
         window.addEventListener('error', function(e) {
             console.error("Global error caught:", e.message);
         });
@@ -880,6 +931,7 @@
                 await loadUserData();
                 loadTrendingData();
                 loadCommunityData();
+                loadInboxShares(); // Load songs shared with this user
                 
                 syncPublicProfile(); // Sync this user's profile to the public directory
                 
@@ -901,6 +953,7 @@
         let trendingUnsubscribe = null;
         let userUnsubscribe = null;
         let communityUnsubscribe = null;
+        let sharesUnsubscribe = null;
 
         function loadCatalogData() {
             if(!AppState.user) return;
@@ -912,7 +965,6 @@
                             await setDoc(doc(catalogRef, song.id), song);
                         }
                     } catch (err) {
-                        console.warn("Permission restricted, using local mock data fallback.", err);
                         AppState.catalog = initialMockSongs;
                         refreshCurrentView();
                     }
@@ -923,7 +975,6 @@
                     refreshCurrentView();
                 }
             }, (error) => {
-                console.warn("Catalog fetch error:", error);
                 if(AppState.catalog.length === 0) {
                     AppState.catalog = initialMockSongs;
                     refreshCurrentView();
@@ -951,7 +1002,6 @@
                     refreshCurrentView();
                 }
             }, (error) => {
-                console.warn("Artists fetch error:", error);
                 if(AppState.artists.length === 0) {
                     AppState.artists = initialMockArtists;
                     refreshCurrentView();
@@ -968,7 +1018,25 @@
                 // Filter out self
                 AppState.communityUsers = users.filter(u => u.uid !== AppState.user.uid);
                 if (AppState.currentView === 'settings') renderSettings();
-            }, (error) => console.warn("Community fetch error:", error));
+            });
+        }
+
+        function loadInboxShares() {
+            if(!AppState.user) return;
+            // Get global shares and filter in memory to comply with query rules
+            const sharesRef = collection(db, 'artifacts', AppID, 'public', 'data', 'shares');
+            sharesUnsubscribe = onSnapshot(sharesRef, (snapshot) => {
+                const shares = [];
+                snapshot.forEach(docSnap => {
+                    const d = docSnap.data();
+                    if(d.to === AppState.user.uid) {
+                        shares.push(d);
+                    }
+                });
+                // Sort by newest
+                AppState.inbox = shares.sort((a,b) => b.timestamp - a.timestamp);
+                if (AppState.currentView === 'favorites') renderFavorites();
+            });
         }
 
         async function loadUserData() {
@@ -981,32 +1049,42 @@
                     const data = docSnap.data();
                     AppState.favorites = data.favorites || [];
                     AppState.playlists = data.playlists || [];
+                    AppState.pinnedArtists = data.pinnedArtists || [];
                     AppState.playHistory = data.playHistory || {};
                     AppState.dailyPlayStats = data.dailyPlayStats || {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0};
                 } else {
-                    setDoc(userRef, { favorites: [], playlists: [], playHistory: {}, dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0} }).catch(e => console.warn(e));
+                    setDoc(userRef, { favorites: [], playlists: [], pinnedArtists: [], playHistory: {}, dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0} }).catch(e => console.warn(e));
                 }
                 
                 generateAutoMixes(); // Generate custom AI mixes when history changes
                 renderSidebarPlaylists();
                 
                 if(AppState.currentView === 'favorites') renderFavorites();
+                else if (AppState.currentView === 'artists') renderArtists();
                 else if (AppState.currentView === 'playlist' || AppState.currentView === 'auto-mix') renderPlaylistView(document.querySelector('h2')?.innerText || '');
 
                 updateLikeButtonUI();
                 renderActiveStates();
-            }, (err) => console.warn("User data error:", err));
+            });
         }
 
         function loadTrendingData() {
             if(!AppState.user) return;
-            const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
-            trendingUnsubscribe = onSnapshot(trendingRef, (docSnap) => {
+            // Using a daily rolling doc for true 24 hour stats
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dailyRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'daily_' + todayStr);
+            
+            trendingUnsubscribe = onSnapshot(dailyRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    AppState.trendingStats = docSnap.data() || { playCounts: {}, listenTime: {} };
+                    const data = docSnap.data();
+                    AppState.trendingStats.dailyPlays = data.playCounts || {};
+                    AppState.trendingStats.dailyTime = data.listenTime || {};
+                } else {
+                    AppState.trendingStats.dailyPlays = {};
+                    AppState.trendingStats.dailyTime = {};
                 }
                 if(AppState.currentView === 'home') renderHome();
-            }, (err) => console.warn("Trending stats error:", err));
+            });
         }
 
         function refreshCurrentView() {
@@ -1030,6 +1108,7 @@
             await setDoc(userRef, {
                 favorites: AppState.favorites,
                 playlists: AppState.playlists,
+                pinnedArtists: AppState.pinnedArtists,
                 playHistory: AppState.playHistory,
                 dailyPlayStats: AppState.dailyPlayStats
             }, { merge: true });
@@ -1037,20 +1116,21 @@
 
         // --- Core Analytics & Trending Algorithms ---
         
-        // Advanced Trending Score: (Plays * 50) + Total Seconds Listened
-        const getTrendingScore = (id) => {
-            const plays = AppState.trendingStats?.playCounts?.[id] || 0;
-            const listenSeconds = AppState.trendingStats?.listenTime?.[id] || 0;
-            return (plays * 50) + listenSeconds;
+        // 24-Hour Trending Score (Combines plays + listen duration)
+        const get24HTrendingScore = (id) => {
+            const plays = AppState.trendingStats?.dailyPlays?.[id] || 0;
+            const time = AppState.trendingStats?.dailyTime?.[id] || 0;
+            return (plays * 50) + time;
         };
 
         async function recordPlay(songId) {
             if (!AppState.user) return;
-            const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dailyRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'daily_' + todayStr);
             
-            // 1. Increment Global Starts
+            // 1. Increment 24 Hour Global Starts
             try {
-                await setDoc(trendingRef, { playCounts: { [songId]: increment(1) } }, { merge: true });
+                await setDoc(dailyRef, { playCounts: { [songId]: increment(1) } }, { merge: true });
             } catch (err) {}
             
             // 2. Record User Local History & Analytics
@@ -1066,7 +1146,7 @@
                 AppState.dailyPlayStats[dayOfWeek] = (AppState.dailyPlayStats[dayOfWeek] || 0) + 1;
                 
                 generateAutoMixes(); 
-                syncPublicProfile(); // Keep profile up to date
+                syncPublicProfile(); 
             } catch (err) {}
         }
 
@@ -1075,8 +1155,11 @@
                 const id = window.lastPlayedSongId;
                 const secs = window.currentListenSecs;
                 
-                const trendingRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'global');
-                setDoc(trendingRef, { listenTime: { [id]: increment(secs) } }, { merge: true }).catch(console.warn);
+                const todayStr = new Date().toISOString().split('T')[0];
+                const dailyRef = doc(db, 'artifacts', AppID, 'public', 'data', 'stats', 'daily_' + todayStr);
+                
+                // Increment global listening time for 24H analytics
+                setDoc(dailyRef, { listenTime: { [id]: increment(secs) } }, { merge: true }).catch(console.warn);
             }
             window.currentListenSecs = 0;
         }
@@ -1137,8 +1220,10 @@
             const catalog = AppState.catalog;
             if(catalog.length === 0) return;
 
-            // --- Your Daily Aura (Evolving Ultimate Mix) ---
+            // --- Your Daily Aura (Evolving Ultimate Mix based heavily on listening behavior) ---
             let ultimateSongs = [];
+            
+            // Highly weight what they listened to most
             const topPlayed = Object.entries(userHistory).sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0, 5);
             ultimateSongs.push(...topPlayed);
 
@@ -1149,19 +1234,21 @@
             });
             const topGenres = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0, 2);
 
+            // Heavily fill mix with songs matching their most listened vibe/genre
             if(topGenres.length > 0) {
                 let gSongs = catalog.filter(s => topGenres.includes(s.genre) && !ultimateSongs.includes(s.id));
-                gSongs = shuffleArray([...gSongs]).slice(0, 5);
+                gSongs = shuffleArray([...gSongs]).slice(0, 10);
                 ultimateSongs.push(...gSongs.map(s=>s.id));
             }
 
+            // Sprinkle some discovery
             let discSongs = catalog.filter(s => !ultimateSongs.includes(s.id) && (!userHistory[s.id] || userHistory[s.id] === 0));
             discSongs = shuffleArray([...discSongs]).slice(0, 5);
             ultimateSongs.push(...discSongs.map(s=>s.id));
 
             if(ultimateSongs.length < 5) {
                 let filler = catalog.filter(s=>!ultimateSongs.includes(s.id));
-                filler = shuffleArray([...filler]).slice(0, 10 - ultimateSongs.length);
+                filler = shuffleArray([...filler]).slice(0, 15 - ultimateSongs.length);
                 ultimateSongs.push(...filler.map(s=>s.id));
             }
 
@@ -1171,7 +1258,7 @@
                 mixes.push({ 
                     id: 'mix_ultimate', 
                     name: 'Your Daily Aura', 
-                    desc: 'A personalized mix that evolves with your taste, updated constantly.', 
+                    desc: 'A personalized mix that evolves strictly with your listening vibe.', 
                     songs: ultimateSongs, 
                     colorFrom: 'from-brand-600', 
                     colorTo: 'to-indigo-900',
@@ -1214,7 +1301,7 @@
                     mixes.push({ 
                         id: `mix_genre_${genre.replace(/\s+/g,'_')}`, 
                         name: `${genre} Mix`, 
-                        desc: `The best of ${genre}, curated for you.`, 
+                        desc: `You've been loving ${genre} lately. Here is a curated mix.`, 
                         songs: genreSongs.map(s=>s.id),
                         colorFrom: cols.from, 
                         colorTo: cols.to,
@@ -1248,7 +1335,7 @@
             queue.unshift(seedSong);
             
             showToast(`Started Smart Radio based on ${seedSong.title}`);
-            playQueue(queue, 0);
+            playQueue(queue, 0, {type: 'radio', value: seedSong.genre});
         };
 
         // --- Navigation & Rendering ---
@@ -1293,7 +1380,6 @@
             }, 200); 
         };
 
-        // Smart "Play All" Logic respecting Shuffle state
         window.playAll = () => {
             if(AppState.catalog.length === 0) return;
             let tracksToPlay = [...AppState.catalog];
@@ -1304,16 +1390,17 @@
             } else {
                 showToast("Playing All Tracks");
             }
-            playQueue(tracksToPlay, 0);
+            playQueue(tracksToPlay, 0, null); // Clear context to play everything
         };
         
         window.playGenre = (genre) => {
             let tracks = AppState.catalog.filter(s => s.genre === genre);
-            tracks = tracks.sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+            tracks = tracks.sort((a,b) => get24HTrendingScore(b.id) - get24HTrendingScore(a.id));
             if(AppState.isShuffle) tracks = shuffleArray(tracks);
             
             showToast(`Playing ${genre} hits`);
-            playQueue(tracks, 0);
+            // Lock context strictly to genre
+            playQueue(tracks, 0, { type: 'genre', value: genre });
         };
 
         function renderHome() {
@@ -1330,16 +1417,16 @@
             
             const catalog = AppState.catalog;
             const featuredTracks = catalog.filter(s => s.isFeatured);
-            const trending = [...catalog].sort((a, b) => getTrendingScore(b.id) - getTrendingScore(a.id)).slice(0, 10);
+            
+            // Now strictly 24 hours stats for Top Hits
+            const trending = [...catalog].sort((a, b) => get24HTrendingScore(b.id) - get24HTrendingScore(a.id)).slice(0, 10);
             const topTrendingSong = trending[0];
             const dailyHits = [...trending].slice(0, 8); 
+            
             const newReleases = [...catalog].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
+            // Refined Vibe match relying on specific listening behavior
             let userGenresMap = {};
-            AppState.favorites.forEach(id => {
-                const song = catalog.find(s => s.id === id);
-                if(song && song.genre) userGenresMap[song.genre] = (userGenresMap[song.genre] || 0) + 3;
-            });
             Object.entries(AppState.playHistory || {}).forEach(([id, plays]) => {
                 const song = catalog.find(s => s.id === id);
                 if(song && song.genre) userGenresMap[song.genre] = (userGenresMap[song.genre] || 0) + plays;
@@ -1349,7 +1436,8 @@
             
             let vibeMatch = [];
             if (topGenres.length > 0) {
-                vibeMatch = catalog.filter(s => topGenres.includes(s.genre) && (AppState.playHistory[s.id] || 0) < 3);
+                // Strictly fetch tracks from their favorite genres that they haven't overplayed
+                vibeMatch = catalog.filter(s => topGenres.includes(s.genre) && (AppState.playHistory[s.id] || 0) < 5);
                 vibeMatch = shuffleArray(vibeMatch).slice(0, 10);
             }
             if (vibeMatch.length < 5) { 
@@ -1359,7 +1447,7 @@
             let discoveryTracks = catalog.filter(s => !AppState.playHistory[s.id] || AppState.playHistory[s.id] === 0);
             discoveryTracks = shuffleArray(discoveryTracks).slice(0, 10);
 
-            // Dynamic Genre Shelves with Smart Play buttons
+            // Dynamic Genre Shelves
             const genresMap = {};
             catalog.forEach(song => {
                 if (song.genre) {
@@ -1370,14 +1458,14 @@
 
             const genreSectionsHTML = Object.keys(genresMap).sort().filter(genre => genresMap[genre].length > 0)
                 .map(genre => {
-                    let genreSongs = [...genresMap[genre]].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+                    let genreSongs = [...genresMap[genre]].sort((a,b) => get24HTrendingScore(b.id) - get24HTrendingScore(a.id));
                     genreSongs = genreSongs.slice(0, 10);
                     return `
                         <section class="mt-8">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-xl font-bold tracking-tight">${genre}</h3>
                                 <button onclick="playGenre('${genre}')" class="text-xs font-bold bg-white/5 hover:bg-brand-500/20 hover:text-brand-400 text-gray-400 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5">
-                                    <i data-lucide="play" class="w-3 h-3 fill-current"></i> Play All
+                                    <i data-lucide="play" class="w-3 h-3 fill-current"></i> Play Only ${genre}
                                 </button>
                             </div>
                             <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
@@ -1420,7 +1508,7 @@
                         <div class="absolute inset-0 bg-gradient-to-r from-dark-900/95 via-dark-900/80 to-transparent z-10 flex items-center p-4 md:p-6">
                             <div class="flex-1 max-w-md z-20 flex flex-col justify-center">
                                 <span class="text-[10px] md:text-xs font-bold tracking-widest uppercase text-brand-400 mb-1 drop-shadow-md flex items-center gap-1.5">
-                                    <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> #1 Trending Now
+                                    <i data-lucide="flame" class="w-3.5 h-3.5"></i> 24-Hour Hot #1
                                 </span>
                                 <div class="flex items-center gap-4">
                                     <div class="flex-1 min-w-0">
@@ -1452,10 +1540,10 @@
                             <div class="flex-1 text-center md:text-left z-10">
                                 <div class="flex items-center justify-center md:justify-start gap-2 mb-1">
                                     <i data-lucide="sparkles" class="w-4 h-4 text-brand-300 fill-current"></i>
-                                    <span class="text-xs font-bold uppercase tracking-widest text-brand-300">Updated Based On Your Listening</span>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-brand-300">Updated Based On Your Vibe</span>
                                 </div>
                                 <h3 class="text-2xl md:text-4xl font-black text-white mb-2">Your Daily Aura</h3>
-                                <p class="text-sm md:text-base text-gray-300 font-medium max-w-xl">A personalized, evolving playlist crafted just for you. Changes as your tastes change.</p>
+                                <p class="text-sm md:text-base text-gray-300 font-medium max-w-xl">A personalized, evolving playlist crafted just for you based heavily on what you love.</p>
                             </div>
                             <button class="w-14 h-14 bg-white rounded-full flex items-center justify-center shrink-0 hover:scale-110 transition-transform shadow-[0_10px_30px_rgba(255,255,255,0.2)] z-10" onclick="event.stopPropagation(); playQueue(${JSON.stringify(dailyAuraMix.songs.map(id=>catalog.find(s=>s.id===id)).filter(Boolean)).replace(/"/g, '&quot;')}, 0)">
                                  <i data-lucide="play" class="w-6 h-6 text-black fill-current ml-1"></i>
@@ -1484,7 +1572,7 @@
                         Most Played in 24 Hours
                     </h3>
                     <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
-                        ${dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('')}
+                        ${dailyHits.length > 0 ? dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('') : '<p class="text-gray-500 italic text-sm py-4">No plays today yet. Be the first to listen!</p>'}
                     </div>
                 </section>
 
@@ -1532,7 +1620,7 @@
                 <div class="sticky top-12 md:top-0 z-10 bg-dark-900/95 backdrop-blur-xl pt-2 pb-6 -mx-5 px-5 md:mx-0 md:px-0 transition-all duration-300">
                     <div class="relative w-full max-w-3xl mx-auto">
                         <i data-lucide="search" class="absolute left-5 top-4 text-gray-400 w-6 h-6"></i>
-                        <input type="text" id="search-input" placeholder="What do you want to listen to?" class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-brand-500 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleSearch(event)">
+                        <input type="text" id="search-input" placeholder="Search fuzzy... misspelled words allowed" class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-brand-500 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleSearch(event)">
                     </div>
                 </div>
                 <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -1542,16 +1630,33 @@
         }
 
         window.handleSearch = (e) => {
-            const query = e.target.value.toLowerCase();
+            const query = e.target.value.toLowerCase().trim();
             const resultsContainer = document.getElementById('search-results');
             if (!query) {
                 resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-20 font-medium">Browse our entire catalog</div>';
                 return;
             }
-            let results = AppState.catalog.filter(s => s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query) || s.genre.toLowerCase().includes(query));
-            results = results.sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+
+            // Fuzzy Search implementation mapping similarity score
+            let scoredResults = AppState.catalog.map(song => {
+                const titleDist = fuzzyMatch(query, song.title);
+                const artistDist = fuzzyMatch(query, song.artist);
+                const genreDist = fuzzyMatch(query, song.genre);
+                const bestScore = Math.min(titleDist, artistDist, genreDist);
+                return { song, score: bestScore };
+            });
+
+            // Filter out wildly incorrect matches (threshold based on query length)
+            const threshold = Math.max(3, Math.floor(query.length * 0.4));
+            let results = scoredResults.filter(s => s.score <= threshold)
+                .sort((a,b) => {
+                    if(a.score !== b.score) return a.score - b.score;
+                    return get24HTrendingScore(b.song.id) - get24HTrendingScore(a.song.id);
+                })
+                .map(res => res.song);
+
             if (results.length === 0) {
-                resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-20 font-medium">No results found for "'+query+'"</div>';
+                resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-20 font-medium">No close matches found for "'+query+'"</div>';
                 return;
             }
             resultsContainer.innerHTML = results.map((song, i) => SongCardSmall(song, results, i)).join('');
@@ -1561,17 +1666,23 @@
 
         // --- Artists Logic ---
         function renderArtists() {
-            const artistsList = [...AppState.artists].sort((a,b) => a.name.localeCompare(b.name));
+            let artistsList = [...AppState.artists].sort((a,b) => a.name.localeCompare(b.name));
             artistsList.forEach(a => {
                 a.songCount = AppState.catalog.filter(s => s.artist === a.name).length;
             });
+            
+            // Bring pinned artists to the top
+            let pinned = artistsList.filter(a => AppState.pinnedArtists.includes(a.id));
+            let unpinned = artistsList.filter(a => !AppState.pinnedArtists.includes(a.id));
+            artistsList = [...pinned, ...unpinned];
+            
             window._currentArtistsList = artistsList;
 
             els.contentArea.innerHTML = `
                 <div class="sticky top-12 md:top-0 z-10 bg-dark-900/95 backdrop-blur-xl pt-2 pb-6 -mx-5 px-5 md:mx-0 md:px-0 transition-all duration-300">
                     <div class="relative w-full max-w-3xl mx-auto">
                         <i data-lucide="search" class="absolute left-5 top-4 text-gray-400 w-6 h-6"></i>
-                        <input type="text" id="artist-search-input" placeholder="Find an artist..." class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-brand-500 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleArtistSearch(event)">
+                        <input type="text" id="artist-search-input" placeholder="Find an artist (fuzzy search)..." class="w-full bg-dark-800 border border-white/10 rounded-full pl-14 pr-6 py-4 font-medium focus:outline-none focus:border-brand-500 focus:bg-dark-700 transition-colors text-white shadow-lg" onkeyup="handleArtistSearch(event)">
                     </div>
                 </div>
                 <h2 class="text-3xl font-black mb-8 tracking-tight mt-2">All Artists</h2>
@@ -1584,7 +1695,8 @@
         window.renderArtistCards = (list) => {
             if(list.length === 0) return '<div class="col-span-full text-center text-gray-500 py-10 font-medium">No artists found.</div>';
             return list.map(artist => `
-                <div class="flex flex-col items-center gap-3 group cursor-pointer" onclick="navigate('artist-detail', '${artist.name.replace(/'/g, "\\'")}')">
+                <div class="flex flex-col items-center gap-3 group cursor-pointer relative" onclick="navigate('artist-detail', '${artist.name.replace(/'/g, "\\'")}')">
+                    ${AppState.pinnedArtists.includes(artist.id) ? '<div class="absolute top-0 right-0 md:right-2 z-10 bg-brand-500 rounded-full p-1 shadow-lg"><i data-lucide="pin" class="w-3 h-3 text-white fill-current"></i></div>' : ''}
                     <div class="w-full aspect-square rounded-full overflow-hidden shadow-lg border-4 border-transparent group-hover:border-brand-500 transition-all duration-300 bg-dark-800">
                         <img src="${artist.cover}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                     </div>
@@ -1597,23 +1709,38 @@
         };
 
         window.handleArtistSearch = (e) => {
-            const query = e.target.value.toLowerCase();
+            const query = e.target.value.toLowerCase().trim();
             const container = document.getElementById('artists-results');
             if(!window._currentArtistsList) return;
-            const filtered = window._currentArtistsList.filter(a => a.name.toLowerCase().includes(query));
+            
+            if(!query) {
+                container.innerHTML = renderArtistCards(window._currentArtistsList);
+                lucide.createIcons();
+                return;
+            }
+
+            const threshold = Math.max(2, Math.floor(query.length * 0.4));
+            let scored = window._currentArtistsList.map(a => {
+                return { artist: a, score: fuzzyMatch(query, a.name) };
+            });
+            
+            let filtered = scored.filter(a => a.score <= threshold).sort((a,b) => a.score - b.score).map(a => a.artist);
+            
             container.innerHTML = renderArtistCards(filtered);
             lucide.createIcons();
         };
 
         function renderArtistDetail(artistName) {
+            const artist = AppState.artists.find(a => a.name === artistName);
             const artistSongs = AppState.catalog.filter(s => s.artist === artistName);
             if(artistSongs.length === 0) return;
             
             const cover = artistSongs[0].cover;
-            const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.playCounts?.[song.id] || 0), 0);
+            const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.daily?.[song.id] || 0), 0);
+            const isPinned = artist && AppState.pinnedArtists.includes(artist.id);
             
             // Explicitly sorting tracks by popularity for this artist
-            window._currentArtistSongs = [...artistSongs].sort((a,b) => getTrendingScore(b.id) - getTrendingScore(a.id));
+            window._currentArtistSongs = [...artistSongs].sort((a,b) => get24HTrendingScore(b.id) - get24HTrendingScore(a.id));
 
             els.contentArea.innerHTML = `
                 <div class="flex items-center gap-4 mb-6 md:hidden">
@@ -1623,7 +1750,7 @@
                     <span class="font-bold text-lg truncate">Artist Profile</span>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-end gap-8 mb-10 mt-2">
-                    <div class="w-40 h-40 md:w-56 md:h-56 rounded-full shadow-2xl overflow-hidden shrink-0 border-4 border-dark-800 ring-2 ring-white/10 bg-dark-800">
+                    <div class="w-40 h-40 md:w-56 md:h-56 rounded-full shadow-2xl overflow-hidden shrink-0 border-4 border-dark-800 ring-2 ring-white/10 bg-dark-800 relative group">
                         <img src="${cover}" class="w-full h-full object-cover">
                     </div>
                     <div class="mt-2 md:mt-0 flex-1 min-w-0 flex flex-col justify-center">
@@ -1633,17 +1760,21 @@
                         </div>
                         <h2 class="text-4xl md:text-7xl font-black mb-4 tracking-tight truncate w-full" title="${artistName}">${artistName}</h2>
                         <div class="flex items-center gap-3 text-sm text-gray-300 font-medium truncate">
-                            <span class="bg-white/10 px-3 py-1 rounded-full text-white">${totalPlays.toLocaleString()} total plays</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full text-white">${totalPlays.toLocaleString()} daily plays</span>
                             <span class="text-gray-500 shrink-0">•</span>
                             <span class="shrink-0">${artistSongs.length} tracks</span>
                         </div>
                         <div class="flex items-center gap-4 mt-8">
-                            <button onclick="playQueue(window._currentArtistSongs, 0)" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
+                            <button onclick="playQueue(window._currentArtistSongs, 0, {type: 'artist', value: '${artistName.replace(/'/g, "\\'")}'})" class="bg-brand-500 hover:scale-105 active:scale-95 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(139,92,246,0.4)] transition-transform">
                                 <i data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
                             </button>
-                            <button onclick="playQueue(shuffleArray([...window._currentArtistSongs]), 0)" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist">
+                            <button onclick="playQueue(shuffleArray([...window._currentArtistSongs]), 0, {type: 'artist', value: '${artistName.replace(/'/g, "\\'")}'})" class="p-3.5 text-gray-400 hover:text-white rounded-full transition-colors bg-white/5 hover:bg-white/10 border border-white/5" title="Shuffle Play Artist Only">
                                 <i data-lucide="shuffle" class="w-6 h-6"></i>
                             </button>
+                            ${artist ? `
+                            <button onclick="togglePinArtist('${artist.id}', '${artistName.replace(/'/g, "\\'")}')" class="p-3.5 ${isPinned ? 'text-brand-500 bg-brand-500/10' : 'text-gray-400 bg-white/5 hover:text-white hover:bg-white/10'} rounded-full transition-colors border border-white/5" title="Pin Artist to Top">
+                                <i data-lucide="pin" class="w-6 h-6 ${isPinned ? 'fill-current' : ''}"></i>
+                            </button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1653,17 +1784,30 @@
                         <i data-lucide="bar-chart-2" class="text-brand-400 w-6 h-6"></i>
                         Popular Tracks
                     </h3>
-                    <div class="relative w-full sm:w-64 shrink-0">
+                    <div class="relative w-full sm:w-64 shrink-0 flex gap-2">
                         <i data-lucide="search" class="absolute left-3 top-2.5 text-gray-500 w-4 h-4"></i>
                         <input type="text" id="artist-track-search" placeholder="Search in ${artistName}..." class="w-full bg-dark-800/80 border border-white/10 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-brand-500 text-white transition-colors" onkeyup="filterArtistTracks(event)">
                     </div>
                 </div>
                 
                 <div class="space-y-1 md:space-y-2 mb-10" id="artist-track-list">
-                    ${window._currentArtistSongs.map((song, i) => SongListItem(song, window._currentArtistSongs, i)).join('')}
+                    ${window._currentArtistSongs.map((song, i) => SongListItem(song, window._currentArtistSongs, i, null, {type: 'artist', value: artistName})).join('')}
                 </div>
             `;
         }
+        
+        window.togglePinArtist = async (id, artistName) => {
+            if(AppState.pinnedArtists.includes(id)) {
+                AppState.pinnedArtists = AppState.pinnedArtists.filter(p => p !== id);
+                showToast("Unpinned artist.");
+            } else {
+                AppState.pinnedArtists.push(id);
+                showToast("Pinned artist to top.");
+            }
+            await saveUserData();
+            renderArtistDetail(artistName); 
+            lucide.createIcons();
+        };
 
         window.filterArtistTracks = (e) => {
             const query = e.target.value.toLowerCase();
@@ -1674,7 +1818,9 @@
                 container.innerHTML = '<div class="text-gray-500 py-6 text-sm text-center">No tracks match your search.</div>';
                 return;
             }
-            container.innerHTML = filtered.map((song, i) => SongListItem(song, filtered, i)).join('');
+            // Retain context to artist in search results
+            const artistName = window._currentArtistSongs[0].artist;
+            container.innerHTML = filtered.map((song, i) => SongListItem(song, filtered, i, null, {type: 'artist', value: artistName})).join('');
             lucide.createIcons();
             renderActiveStates();
         };
@@ -1726,6 +1872,40 @@
                 </div>
             `).join('');
 
+            // Inbox / Shared with You
+            let inboxHTML = '';
+            if (AppState.inbox.length > 0) {
+                const uniqueInboxSongs = [];
+                const seenIds = new Set();
+                AppState.inbox.forEach(item => {
+                    if(!seenIds.has(item.songId)) {
+                        seenIds.add(item.songId);
+                        uniqueInboxSongs.push(item);
+                    }
+                });
+
+                inboxHTML = `
+                    <h3 class="text-xl font-bold mt-10 mb-4 tracking-tight flex items-center gap-2">
+                        <i data-lucide="inbox" class="text-brand-400 w-5 h-5"></i> Shared With You
+                    </h3>
+                    <div class="space-y-1 mb-8">
+                        ${uniqueInboxSongs.map((item, i) => {
+                            const song = AppState.catalog.find(s => s.id === item.songId);
+                            if(!song) return '';
+                            // Inject sender info before the regular list item
+                            return `
+                            <div class="bg-dark-800/30 rounded-xl mb-2 border border-white/5">
+                                <div class="px-4 pt-2 pb-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                                    <i data-lucide="user" class="w-3 h-3"></i> Shared by ${item.fromUserName}
+                                </div>
+                                ${SongListItem(song, uniqueInboxSongs.map(u => AppState.catalog.find(s=>s.id===u.songId)).filter(Boolean), i)}
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
             els.contentArea.innerHTML = `
                 <div class="flex justify-between items-center mb-8 mt-2">
                     <h2 class="text-3xl md:text-5xl font-black tracking-tight">Your Library</h2>
@@ -1764,6 +1944,8 @@
                     <button onclick="createNewPlaylist()" class="bg-white text-black font-bold px-6 py-3 rounded-full text-sm hover:scale-105 transition-transform shadow-xl">Create Playlist</button>
                 </div>
                 ` : ''}
+
+                ${inboxHTML}
             `;
         }
 
@@ -2600,15 +2782,22 @@
                     </h4>
                     <p class="text-xs text-gray-400 font-medium truncate">${song.artist}</p>
                 </div>
-                <button class="p-3 -mr-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')">
-                    <i data-lucide="list-plus" class="w-6 h-6 md:w-5 md:h-5 text-gray-400 hover:text-white"></i>
-                </button>
+                <div class="flex items-center">
+                    <button class="p-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
+                        <i data-lucide="list-plus" class="w-6 h-6 md:w-5 md:h-5 text-gray-400 hover:text-white"></i>
+                    </button>
+                    <button class="p-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); openShareModal('${song.id}')" title="Share Song">
+                        <i data-lucide="send" class="w-6 h-6 md:w-5 md:h-5 text-gray-400 hover:text-white"></i>
+                    </button>
+                </div>
             </div>
         `;
 
-        const SongListItem = (song, queue, index, playlistId = null) => {
+        const SongListItem = (song, queue, index, playlistId = null, queueContext = null) => {
+            const queueStr = JSON.stringify(queue).replace(/"/g, '&quot;');
+            const contextStr = queueContext ? JSON.stringify(queueContext).replace(/"/g, '&quot;') : 'null';
             return `
-            <div class="song-row flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer" data-song-id="${song.id}" onclick="playQueue(${JSON.stringify(queue).replace(/"/g, '&quot;')}, ${index})">
+            <div class="song-row flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer" data-song-id="${song.id}" onclick="playQueue(${queueStr}, ${index}, ${contextStr})">
                 
                 <div class="w-6 md:w-8 text-center text-gray-400 text-sm font-medium hidden md:block group-hover:hidden song-number shrink-0">${index + 1}</div>
                 
@@ -2628,7 +2817,7 @@
                 </div>
                 <div class="text-xs text-gray-400 font-medium hidden md:block w-24 lg:w-32 truncate shrink-0">${song.genre}</div>
                 
-                <div class="flex items-center gap-1 md:gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button class="p-3 md:p-2.5" onclick="event.stopPropagation(); window.toggleFavorite('${song.id}')">
                         <i data-lucide="heart" class="w-6 h-6 md:w-5 md:h-5 ${AppState.favorites.includes(song.id) ? 'text-brand-500 fill-current' : 'text-gray-400 hover:text-white'} transition-colors"></i>
                     </button>
@@ -2639,9 +2828,57 @@
                     <button class="p-3 md:p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openPlaylistModal('${song.id}')" title="Add to Playlist">
                         <i data-lucide="list-plus" class="w-6 h-6 md:w-5 md:h-5"></i>
                     </button>`}
+                    <button class="p-3 md:p-2.5 text-gray-400 hover:text-white" onclick="event.stopPropagation(); openShareModal('${song.id}')" title="Share Song">
+                        <i data-lucide="send" class="w-6 h-6 md:w-5 md:h-5"></i>
+                    </button>
                 </div>
             </div>
         `;
+        };
+
+        // --- Sharing Logic ---
+        window.openShareModal = (songId) => {
+            AppState.songToShareId = songId;
+            const content = document.getElementById('share-modal-content');
+            if (AppState.communityUsers.length === 0) {
+                content.innerHTML = '<p class="text-sm text-gray-400 font-medium">No other users found on the platform yet.</p>';
+            } else {
+                content.innerHTML = AppState.communityUsers.map(u => `
+                    <button onclick="handleShareSong('${u.uid}')" class="w-full text-left p-3 rounded-xl bg-dark-900/50 hover:bg-dark-700 font-medium text-sm transition-colors flex justify-between items-center border border-transparent hover:border-white/5">
+                        <div class="flex items-center gap-3">
+                            <img src="${u.photo}" class="w-8 h-8 rounded-full object-cover">
+                            <span>${u.name}</span>
+                        </div>
+                    </button>
+                `).join('');
+            }
+            els.shareModal.classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.closeShareModal = () => {
+            els.shareModal.classList.add('hidden');
+            AppState.songToShareId = null;
+        };
+
+        window.handleShareSong = async (targetUid) => {
+            const songId = AppState.songToShareId;
+            if(!songId || !targetUid) return;
+            
+            try {
+                const shareId = 'share_' + Date.now();
+                await setDoc(doc(db, 'artifacts', AppID, 'public', 'data', 'shares', shareId), {
+                    to: targetUid,
+                    fromUid: AppState.user.uid,
+                    fromUserName: AppState.userName,
+                    songId: songId,
+                    timestamp: Date.now()
+                });
+                showToast("Song shared successfully!");
+                closeShareModal();
+            } catch (err) {
+                showToast("Failed to share song.");
+            }
         };
 
         // --- Playlists Logic ---
@@ -2806,12 +3043,16 @@
             const upNext = AppState.queue.slice(AppState.currentIndex + 1);
             
             if(upNext.length === 0) {
-                els.queueContent.innerHTML = `<div class="text-gray-500 text-sm text-center py-10 font-medium">Auto-play will select the next track.</div>`;
+                let txt = "Auto-play will select the next track.";
+                if(AppState.queueContext) {
+                    txt = `Auto-play will stick to ${AppState.queueContext.type === 'artist' ? 'artist' : 'genre'}: ${AppState.queueContext.value}.`;
+                }
+                els.queueContent.innerHTML = `<div class="text-gray-500 text-sm text-center py-10 font-medium">${txt}</div>`;
                 return;
             }
 
             els.queueContent.innerHTML = upNext.map((song, i) => `
-                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer" onclick="playQueue(AppState.queue, AppState.currentIndex + 1 + ${i})">
+                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer" onclick="playQueue(AppState.queue, AppState.currentIndex + 1 + ${i}, AppState.queueContext)">
                     <img src="${song.cover}" class="w-10 h-10 rounded object-cover bg-dark-800 shrink-0">
                     <div class="flex-1 overflow-hidden">
                         <h4 class="font-bold text-sm text-white truncate group-hover:text-brand-400 transition-colors">${song.title}</h4>
@@ -2822,14 +3063,18 @@
         }
 
         // --- Player Controls & Auto-Play Logic ---
-        window.playQueue = (queue, index) => {
+        window.playQueue = (queue, index, context = null) => {
             AppState.queue = [...queue]; 
             AppState.currentIndex = index;
+            AppState.queueContext = context; // Stores e.g. {type: 'artist', value: 'The Weeknd'}
             loadSong();
         };
 
         function loadSong() {
+            // Save duration for the PREVIOUS song before switching
             saveListenDuration(); 
+            window.currentListenSecs = 0; 
+            window.hasRecordedCurrentPlay = false;
 
             const song = AppState.queue[AppState.currentIndex];
             if (!song) return;
@@ -2855,6 +3100,8 @@
             if(AppState.currentView === 'playlist') contextText = "PLAYING FROM PLAYLIST";
             else if(AppState.currentView === 'auto-mix') contextText = "PLAYING FROM SMART MIX";
             else if(AppState.currentView === 'favorites') contextText = "PLAYING FROM LIKED SONGS";
+            else if(AppState.queueContext?.type === 'artist') contextText = `PLAYING ${AppState.queueContext.value.toUpperCase()}`;
+            
             const mfpContext = document.getElementById('mfp-context');
             if (mfpContext) mfpContext.innerText = contextText;
 
@@ -2864,7 +3111,6 @@
 
             AppState.audio.src = song.src;
             AppState.audio.play().catch(e => console.error(e));
-            recordPlay(song.id);
             
             renderPlayerSuggestions(song);
         }
@@ -2973,25 +3219,31 @@
             if(e) e.stopPropagation();
             if (AppState.catalog.length === 0) return;
             
+            let availablePool = AppState.catalog;
+            // Respect queue context if playing from an Artist or Genre specifically!
+            if (AppState.queueContext) {
+                if (AppState.queueContext.type === 'artist') {
+                    availablePool = availablePool.filter(s => s.artist === AppState.queueContext.value);
+                } else if (AppState.queueContext.type === 'genre') {
+                    availablePool = availablePool.filter(s => s.genre === AppState.queueContext.value);
+                }
+            }
+
             if (AppState.isShuffle) {
-                // If Shuffle is on, pick randomly
-                let available = AppState.catalog.filter(s => s.id !== AppState.queue[AppState.currentIndex]?.id);
-                if(available.length === 0) available = AppState.catalog;
+                // Remove current song from random pool to avoid immediate repeat
+                let safePool = availablePool.filter(s => s.id !== AppState.queue[AppState.currentIndex]?.id);
+                if(safePool.length === 0) safePool = availablePool; 
                 
-                const randomSong = available[Math.floor(Math.random() * available.length)];
+                const randomSong = safePool[Math.floor(Math.random() * safePool.length)];
                 AppState.queue.splice(AppState.currentIndex + 1, 0, randomSong);
                 AppState.currentIndex++;
             } else {
                 // Not shuffle. Play next in line.
                 if (AppState.currentIndex >= AppState.queue.length - 1) {
-                    // Reached end. Auto-fetch a smart suggestion to keep radio alive
+                    // Reached end. Fetch from locked context pool
                     const currentSong = AppState.queue[AppState.currentIndex];
-                    let suggestions = AppState.catalog.filter(s => s.genre === currentSong?.genre && s.id !== currentSong?.id);
-                    
-                    if (suggestions.length === 0 || Math.random() > 0.7) {
-                        suggestions = AppState.catalog.filter(s => s.id !== currentSong?.id);
-                    }
-                    if (suggestions.length === 0) suggestions = AppState.catalog; 
+                    let suggestions = availablePool.filter(s => s.id !== currentSong?.id);
+                    if (suggestions.length === 0) suggestions = availablePool; 
                     
                     const nextSong = suggestions[Math.floor(Math.random() * suggestions.length)];
                     AppState.queue.push(nextSong);
@@ -3024,8 +3276,13 @@
                     if(id==='mfp-shuffle') el.classList.toggle('text-white/70', !AppState.isShuffle);
                 }
             });
-            if(AppState.isShuffle) showToast("Shuffle Enabled (Fisher-Yates)");
-            else showToast("Shuffle Disabled");
+            
+            if(AppState.isShuffle) {
+                if(AppState.queueContext) showToast(`Shuffle Enabled (Locked to ${AppState.queueContext.value})`);
+                else showToast("Shuffle Enabled");
+            } else {
+                showToast("Shuffle Disabled");
+            }
         };
 
         window.toggleRepeat = (e) => {
@@ -3223,6 +3480,7 @@
             if(trendingUnsubscribe) trendingUnsubscribe();
             if(userUnsubscribe) userUnsubscribe();
             if(communityUnsubscribe) communityUnsubscribe();
+            if(sharesUnsubscribe) sharesUnsubscribe();
             showToast("Signed out successfully");
         };
 
