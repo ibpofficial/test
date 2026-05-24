@@ -153,6 +153,11 @@
         .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .player-hidden { display: none !important; }
+        
+        /* DNA Progress Bar */
+        .dna-segment {
+            transition: width 1s ease-out;
+        }
     </style>
 </head>
 <body class="flex flex-col h-[100dvh] antialiased select-none">
@@ -162,62 +167,71 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Auth Screen -->
-    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-dark-900/95 backdrop-blur-xl">
-        <div class="glass-panel p-8 rounded-3xl w-[90%] max-w-md relative overflow-hidden shadow-2xl">
-            <div class="absolute -top-20 -right-20 w-48 h-48 bg-brand-600 rounded-full blur-[80px] opacity-40"></div>
+    <!-- Premium Auth Screen -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-dark-900/95 backdrop-blur-2xl">
+        <div class="glass-panel p-10 rounded-[2.5rem] w-[90%] max-w-[420px] relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10">
+            <!-- Modern Ambient Orbs -->
+            <div class="absolute -top-32 -right-32 w-64 h-64 bg-brand-600 rounded-full blur-[100px] opacity-40 mix-blend-screen pointer-events-none"></div>
+            <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-indigo-600 rounded-full blur-[100px] opacity-30 mix-blend-screen pointer-events-none"></div>
             
-            <div class="text-center mb-10 mt-4 relative z-10">
-                <div class="flex items-center justify-center gap-3 mb-4">
-                    <div class="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center shadow-lg shadow-brand-500/30">
-                        <i data-lucide="audio-waveform" class="text-white w-7 h-7"></i>
-                    </div>
-                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Aura</h1>
+            <div class="text-center mb-8 mt-2 relative z-10">
+                <div class="w-16 h-16 bg-gradient-to-br from-brand-400 to-brand-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/30 mx-auto mb-6 transform rotate-3">
+                    <i data-lucide="audio-waveform" class="text-white w-8 h-8 -rotate-3"></i>
                 </div>
-                <p class="text-gray-400 text-sm font-medium">Your personal sound universe.</p>
+                <h1 class="text-4xl font-black tracking-tight text-white mb-2">Aura</h1>
+                <p class="text-gray-400 text-sm font-medium">Unlock your personalized sound universe.</p>
             </div>
 
-            <div id="auth-error" class="hidden mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl text-center font-medium"></div>
+            <div id="auth-error" class="hidden mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl text-center font-bold flex items-center gap-2 justify-center">
+                <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                <span id="auth-error-text"></span>
+            </div>
 
             <form id="auth-form" class="space-y-4 relative z-10">
-                <input type="email" id="auth-email" placeholder="Email Address" required class="w-full bg-dark-800/50 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:bg-dark-800 transition-all">
-                <input type="password" id="auth-password" placeholder="Password" required class="w-full bg-dark-800/50 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:bg-dark-800 transition-all">
+                <div class="relative">
+                    <i data-lucide="mail" class="absolute left-4 top-4 w-5 h-5 text-gray-500 pointer-events-none"></i>
+                    <input type="email" id="auth-email" placeholder="Email Address" required class="w-full bg-dark-800/60 border border-white/10 rounded-2xl pl-12 pr-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:bg-dark-800 transition-all font-medium">
+                </div>
+                <div class="relative">
+                    <i data-lucide="lock" class="absolute left-4 top-4 w-5 h-5 text-gray-500 pointer-events-none"></i>
+                    <input type="password" id="auth-password" placeholder="Password" required class="w-full bg-dark-800/60 border border-white/10 rounded-2xl pl-12 pr-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:bg-dark-800 transition-all font-medium">
+                </div>
                 
-                <button type="submit" id="auth-submit" class="w-full bg-white text-black font-bold py-4 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] mt-2">
+                <button type="submit" id="auth-submit" class="w-full bg-white text-black font-extrabold py-4 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] mt-2 shadow-[0_10px_30px_rgba(255,255,255,0.15)]">
                     Sign In
                 </button>
             </form>
 
-            <div class="mt-4 text-center relative z-10 flex flex-col gap-2">
-                <button type="button" id="toggle-forgot-password" class="text-xs font-medium text-brand-400 hover:text-brand-300 transition-colors">
+            <div class="mt-5 text-center relative z-10 flex flex-col gap-3">
+                <button type="button" id="toggle-forgot-password" class="text-xs font-bold text-brand-400 hover:text-brand-300 transition-colors">
                     Forgot Password?
                 </button>
-                <button type="button" id="toggle-auth-mode" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">
-                    Need an account? Sign Up
+                <button type="button" id="toggle-auth-mode" class="text-sm font-bold text-gray-400 hover:text-white transition-colors">
+                    New to Aura? <span class="text-white underline decoration-brand-500 underline-offset-4">Sign Up</span>
                 </button>
             </div>
 
             <div class="flex items-center my-8 relative z-10">
                 <div class="flex-grow border-t border-white/10"></div>
-                <span class="px-4 text-xs font-bold text-gray-500 tracking-wider">OR</span>
+                <span class="px-4 text-xs font-bold text-gray-500 tracking-widest uppercase">Or Continue With</span>
                 <div class="flex-grow border-t border-white/10"></div>
             </div>
 
-            <button id="google-signin-btn" class="w-full bg-dark-800 border border-white/10 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-dark-700 transition-colors relative z-10">
+            <button id="google-signin-btn" class="w-full bg-dark-800/80 border border-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-dark-700 transition-colors relative z-10">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                Continue with Google
+                Google
             </button>
         </div>
     </div>
 
     <!-- Forgot Password Screen -->
     <div id="forgot-password-screen" class="fixed inset-0 z-[55] flex items-center justify-center bg-dark-900/95 backdrop-blur-xl hidden">
-        <div class="glass-panel p-8 rounded-3xl w-[90%] max-w-md relative overflow-hidden shadow-2xl">
+        <div class="glass-panel p-8 rounded-[2.5rem] w-[90%] max-w-md relative overflow-hidden shadow-2xl">
             <div class="absolute -top-20 -left-20 w-48 h-48 bg-brand-600 rounded-full blur-[80px] opacity-30"></div>
             
             <div class="mb-8 mt-2 relative z-10">
@@ -588,10 +602,10 @@
     <!-- Modal for Sharing Songs -->
     <div id="share-modal" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-dark-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-white/10">
-            <h3 class="text-xl font-bold mb-2 flex items-center gap-2"><i data-lucide="send" class="text-brand-400 w-5 h-5"></i> Send to User</h3>
-            <p class="text-xs text-gray-400 mb-5">Share this track directly to their Aura inbox.</p>
+            <h3 class="text-xl font-bold mb-2 flex items-center gap-2"><i data-lucide="send" class="text-brand-400 w-5 h-5"></i> Send to Friend</h3>
+            <p class="text-xs text-gray-400 mb-5">Share this track securely to a friend's Aura inbox.</p>
             <div id="share-modal-content" class="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar mb-5">
-                <!-- Community Users injected here -->
+                <!-- Friends list injected here -->
             </div>
             <button onclick="closeShareModal()" class="mt-4 w-full py-3 bg-dark-700 rounded-xl text-white hover:bg-dark-600 text-sm font-semibold transition-colors">Cancel</button>
         </div>
@@ -668,16 +682,18 @@
             favorites: [],
             playlists: [],
             pinnedArtists: [],
+            friends: [], // Track friends array
             autoMixes: [], 
             playHistory: {},
-            dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}, // Analytics heatmap data (Sun-Sat)
+            dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}, 
+            appTime: { date: null, seconds: 0 }, // Session tracking logic
             trendingStats: { dailyPlays: {}, dailyTime: {} }, 
-            communityUsers: [], // Other users on the platform
-            inbox: [], // Shared songs from others
+            communityUsers: [], 
+            inbox: [], 
             currentView: 'home',
             
             queue: [],
-            queueContext: null, // Limits shuffle strictly to an artist or genre
+            queueContext: null, 
             currentIndex: -1,
             isPlaying: false,
             isShuffle: false,
@@ -697,9 +713,10 @@
         // --- Active Listen Time Tracking & Analytics ---
         window.currentListenSecs = 0;
         window.listenTimer = null;
+        window.appTimeInterval = null; // Whole app usage session
         window.lastPlayedSongId = null;
         window.settingsTimerInterval = null;
-        window.hasRecordedCurrentPlay = false; // Flag to ensure 1 count per song play
+        window.hasRecordedCurrentPlay = false;
 
         // Audio initialization
         AppState.audio.volume = 1;
@@ -758,6 +775,7 @@
             queueContent: document.getElementById('queue-content'),
             authForm: document.getElementById('auth-form'),
             authError: document.getElementById('auth-error'),
+            authErrorText: document.getElementById('auth-error-text'),
             googleBtn: document.getElementById('google-signin-btn'),
             toggleAuthBtn: document.getElementById('toggle-auth-mode'),
             toggleForgotBtn: document.getElementById('toggle-forgot-password'),
@@ -776,8 +794,8 @@
         window.showToast = (msg) => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = 'bg-dark-800 border border-white/10 text-white px-5 py-3 rounded-full shadow-2xl transform transition-all duration-300 -translate-y-10 opacity-0 text-sm font-medium flex items-center gap-2 z-[9999]';
-            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-brand-400"></i> ${msg}`;
+            toast.className = 'bg-dark-800 border border-white/10 text-white px-5 py-3 rounded-full shadow-2xl transform transition-all duration-300 -translate-y-10 opacity-0 text-sm font-bold flex items-center gap-2 z-[9999]';
+            toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-brand-400"></i> ${msg}`;
             container.appendChild(toast);
             lucide.createIcons();
 
@@ -822,7 +840,7 @@
 
         function fuzzyMatch(query, text) {
             query = query.toLowerCase(); text = text.toLowerCase();
-            if (text.includes(query)) return 0; // exact match gets top priority
+            if (text.includes(query)) return 0; 
             return levenshtein(query, text);
         }
 
@@ -831,10 +849,23 @@
         });
 
         // --- Authentication Flow ---
+        function getAuthErrorMessage(code) {
+            switch(code) {
+                case 'auth/invalid-email': return 'The email address is badly formatted.';
+                case 'auth/user-disabled': return 'This account has been disabled.';
+                case 'auth/user-not-found': return 'We couldn\'t find an account with that email.';
+                case 'auth/wrong-password': return 'Incorrect password. Please try again.';
+                case 'auth/email-already-in-use': return 'An account already exists with this email.';
+                case 'auth/weak-password': return 'Your password must be at least 6 characters long.';
+                case 'auth/invalid-credential': return 'Incorrect email or password. Please try again.';
+                default: return 'An unexpected error occurred. Please try again.';
+            }
+        }
+
         els.toggleAuthBtn.addEventListener('click', () => {
             isLoginMode = !isLoginMode;
             document.getElementById('auth-submit').innerText = isLoginMode ? 'Sign In' : 'Sign Up';
-            els.toggleAuthBtn.innerText = isLoginMode ? 'Need an account? Sign Up' : 'Already have an account? Sign In';
+            els.toggleAuthBtn.innerHTML = isLoginMode ? 'New to Aura? <span class="text-white underline decoration-brand-500 underline-offset-4">Sign Up</span>' : 'Already have an account? <span class="text-white underline decoration-brand-500 underline-offset-4">Sign In</span>';
             els.authError.classList.add('hidden');
         });
 
@@ -849,7 +880,7 @@
                     const cred = await signInWithEmailAndPassword(auth, email, password);
                     if (!cred.user.emailVerified) {
                         await signOut(auth);
-                        showAuthError("Please verify your email address. Check your inbox for the verification link.");
+                        showAuthError("Please verify your email address. Check your inbox for the link.");
                     }
                 } else {
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -858,10 +889,10 @@
                     showToast("Account created! A verification link has been sent to your email.");
                     isLoginMode = true;
                     document.getElementById('auth-submit').innerText = 'Sign In';
-                    els.toggleAuthBtn.innerText = 'Need an account? Sign Up';
+                    els.toggleAuthBtn.innerHTML = 'New to Aura? <span class="text-white underline decoration-brand-500 underline-offset-4">Sign Up</span>';
                 }
             } catch (err) {
-                showAuthError(err.message);
+                showAuthError(getAuthErrorMessage(err.code));
             }
         });
 
@@ -871,12 +902,12 @@
             try {
                 await signInWithPopup(auth, provider);
             } catch (err) {
-                showAuthError("Google Sign-In failed.");
+                showAuthError("Google Sign-In failed or was cancelled.");
             }
         });
 
         function showAuthError(msg) {
-            els.authError.innerText = msg;
+            els.authErrorText.innerText = msg;
             els.authError.classList.remove('hidden');
         }
 
@@ -902,7 +933,7 @@
                 els.resetMsg.classList.remove('hidden');
                 setTimeout(() => els.forgotPasswordScreen.classList.add('hidden'), 4000);
             } catch(err) {
-                els.resetMsg.innerText = err.message;
+                els.resetMsg.innerText = getAuthErrorMessage(err.code);
                 els.resetMsg.classList.add('bg-red-500/10', 'text-red-400', 'border', 'border-red-500/20');
                 els.resetMsg.classList.remove('hidden');
             }
@@ -925,6 +956,19 @@
                 document.getElementById('user-avatar').src = pic;
                 document.getElementById('mobile-avatar').src = pic;
 
+                // Track Session Time
+                if(window.appTimeInterval) clearInterval(window.appTimeInterval);
+                window.appTimeInterval = setInterval(() => {
+                    if(!AppState.user) return;
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    if(!AppState.appTime || AppState.appTime.date !== todayStr) {
+                        AppState.appTime = { date: todayStr, seconds: 0 };
+                    }
+                    AppState.appTime.seconds += 60; // Tick a minute
+                    saveUserData(); // save local session state silently
+                    syncPublicProfile(); // push the updated time to community 
+                }, 60000); // sync every 1 minute
+
                 // Load critical resources
                 loadCatalogData();
                 loadArtistsData();
@@ -945,6 +989,7 @@
                 els.mobileMiniPlayer.classList.add('player-hidden');
                 AppState.audio.pause();
                 clearInterval(window.listenTimer);
+                clearInterval(window.appTimeInterval);
                 if(window.settingsTimerInterval) clearInterval(window.settingsTimerInterval);
             }
         });
@@ -1027,8 +1072,12 @@
             const sharesRef = collection(db, 'artifacts', AppID, 'public', 'data', 'shares');
             sharesUnsubscribe = onSnapshot(sharesRef, (snapshot) => {
                 const shares = [];
+                const now = Date.now();
                 snapshot.forEach(docSnap => {
                     const d = docSnap.data();
+                    // AUTO CLEAN: Expire shares older than exactly 24 hours (86400000 ms)
+                    if(now - d.timestamp > 86400000) return;
+                    
                     if(d.to === AppState.user.uid) {
                         shares.push(d);
                     }
@@ -1050,10 +1099,12 @@
                     AppState.favorites = data.favorites || [];
                     AppState.playlists = data.playlists || [];
                     AppState.pinnedArtists = data.pinnedArtists || [];
+                    AppState.friends = data.friends || [];
                     AppState.playHistory = data.playHistory || {};
                     AppState.dailyPlayStats = data.dailyPlayStats || {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0};
+                    AppState.appTime = data.appTime || { date: new Date().toISOString().split('T')[0], seconds: 0 };
                 } else {
-                    setDoc(userRef, { favorites: [], playlists: [], pinnedArtists: [], playHistory: {}, dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0} }).catch(e => console.warn(e));
+                    setDoc(userRef, { favorites: [], playlists: [], pinnedArtists: [], friends: [], playHistory: {}, dailyPlayStats: {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}, appTime: { date: new Date().toISOString().split('T')[0], seconds: 0 } }).catch(e => console.warn(e));
                 }
                 
                 generateAutoMixes(); // Generate custom AI mixes when history changes
@@ -1109,8 +1160,10 @@
                 favorites: AppState.favorites,
                 playlists: AppState.playlists,
                 pinnedArtists: AppState.pinnedArtists,
+                friends: AppState.friends,
                 playHistory: AppState.playHistory,
-                dailyPlayStats: AppState.dailyPlayStats
+                dailyPlayStats: AppState.dailyPlayStats,
+                appTime: AppState.appTime
             }, { merge: true });
         }
 
@@ -1164,32 +1217,48 @@
             window.currentListenSecs = 0;
         }
 
-        // User Profile Analysis Helper
+        // Highly Accurate User Taste Profile (DNA)
         function getUserTasteProfile() {
-            if(Object.keys(AppState.playHistory || {}).length === 0) return { topGenre: 'Discovery', cluster: 'New Listener', topArtist: 'Exploring' };
+            if(Object.keys(AppState.playHistory || {}).length === 0) {
+                return { topGenre: 'Discovery', cluster: 'New Listener', topArtist: 'Exploring', percentages: {} };
+            }
             
             const genreCounts = {};
             const artistCounts = {};
+            let totalPlays = 0;
             
             Object.entries(AppState.playHistory).forEach(([songId, count]) => {
                 const song = AppState.catalog.find(s => s.id === songId);
                 if (song) {
                     genreCounts[song.genre] = (genreCounts[song.genre] || 0) + count;
                     artistCounts[song.artist] = (artistCounts[song.artist] || 0) + count;
+                    totalPlays += count;
                 }
             });
             
-            const topGenre = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a])[0] || 'Unknown';
+            const sortedGenres = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]);
+            const topGenre = sortedGenres[0] || 'Unknown';
             const topArtist = Object.keys(artistCounts).sort((a,b) => artistCounts[b] - artistCounts[a])[0] || 'Various';
             
-            let cluster = "Music Fan";
-            if (topGenre.toLowerCase().includes('pop')) cluster = "Mainstream Pop Fan";
-            else if (topGenre.toLowerCase().includes('synth') || topGenre.toLowerCase().includes('electronic')) cluster = "Synthwave Explorer";
-            else if (topGenre.toLowerCase().includes('rock')) cluster = "Rock Enthusiast";
-            else if (topGenre.toLowerCase().includes('hip hop')) cluster = "Hip-Hop Head";
-            else if (topGenre.toLowerCase().includes('jazz') || topGenre.toLowerCase().includes('lo-fi')) cluster = "Chill Vibes Seeker";
+            // Calculate accurate DNA percentages
+            const percentages = {};
+            sortedGenres.slice(0,4).forEach(g => {
+                percentages[g] = Math.round((genreCounts[g] / totalPlays) * 100);
+            });
             
-            return { topGenre, topArtist, cluster };
+            // Smarter Cluster categorization 
+            let cluster = "Music Fan";
+            const tgLow = topGenre.toLowerCase();
+            if (tgLow.includes('pop')) cluster = "Pop Anthem Lover";
+            else if (tgLow.includes('synth') || tgLow.includes('electronic')) cluster = "Neon Wave Explorer";
+            else if (tgLow.includes('rock') || tgLow.includes('metal')) cluster = "Heavy Rocker";
+            else if (tgLow.includes('hip hop') || tgLow.includes('rap')) cluster = "Urban Beats Head";
+            else if (tgLow.includes('jazz') || tgLow.includes('lo-fi')) cluster = "Late Night Chill";
+            else if (tgLow.includes('acoustic') || tgLow.includes('folk')) cluster = "Acoustic Soul";
+            else if (tgLow.includes('classical')) cluster = "Classical Maestro";
+            else if (tgLow.includes('love') || tgLow.includes('romance')) cluster = "Hopeless Romantic";
+            
+            return { topGenre, topArtist, cluster, percentages };
         }
 
         async function syncPublicProfile() {
@@ -1206,7 +1275,8 @@
                     tasteCluster: taste.cluster,
                     topGenre: taste.topGenre,
                     topArtist: taste.topArtist,
-                    lastActive: new Date().toISOString()
+                    todayAppTime: AppState.appTime?.seconds || 0,
+                    todayDate: new Date().toISOString().split('T')[0]
                 }, {merge: true});
             } catch (err) {
                 console.warn("Could not sync public profile");
@@ -1508,7 +1578,7 @@
                         <div class="absolute inset-0 bg-gradient-to-r from-dark-900/95 via-dark-900/80 to-transparent z-10 flex items-center p-4 md:p-6">
                             <div class="flex-1 max-w-md z-20 flex flex-col justify-center">
                                 <span class="text-[10px] md:text-xs font-bold tracking-widest uppercase text-brand-400 mb-1 drop-shadow-md flex items-center gap-1.5">
-                                    <i data-lucide="flame" class="w-3.5 h-3.5"></i> 24-Hour Hot #1
+                                    <i data-lucide="globe-2" class="w-3.5 h-3.5"></i> Global Community #1 (Today)
                                 </span>
                                 <div class="flex items-center gap-4">
                                     <div class="flex-1 min-w-0">
@@ -1568,11 +1638,12 @@
 
                 <section>
                     <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center gap-2">
-                        <i data-lucide="flame" class="text-brand-400 w-5 h-5"></i>
-                        Most Played in 24 Hours
+                        <i data-lucide="globe" class="text-brand-400 w-5 h-5"></i>
+                        Global Hot Hits (Last 24H)
                     </h3>
+                    <p class="text-xs text-gray-400 mb-4 font-medium -mt-2">Top tracks currently trending across the entire Aura community today.</p>
                     <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-4 snap-x">
-                        ${dailyHits.length > 0 ? dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('') : '<p class="text-gray-500 italic text-sm py-4">No plays today yet. Be the first to listen!</p>'}
+                        ${dailyHits.length > 0 ? dailyHits.map((song, i) => SongCardLarge(song, dailyHits, i)).join('') : '<p class="text-gray-500 italic text-sm py-4">No plays across the network today yet. Be the first to listen!</p>'}
                     </div>
                 </section>
 
@@ -1736,7 +1807,7 @@
             if(artistSongs.length === 0) return;
             
             const cover = artistSongs[0].cover;
-            const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.daily?.[song.id] || 0), 0);
+            const totalPlays = artistSongs.reduce((sum, song) => sum + (AppState.trendingStats?.dailyPlays?.[song.id] || 0), 0);
             const isPinned = artist && AppState.pinnedArtists.includes(artist.id);
             
             // Explicitly sorting tracks by popularity for this artist
@@ -1886,7 +1957,7 @@
 
                 inboxHTML = `
                     <h3 class="text-xl font-bold mt-10 mb-4 tracking-tight flex items-center gap-2">
-                        <i data-lucide="inbox" class="text-brand-400 w-5 h-5"></i> Shared With You
+                        <i data-lucide="inbox" class="text-brand-400 w-5 h-5"></i> Shared With You (Last 24H)
                     </h3>
                     <div class="space-y-1 mb-8">
                         ${uniqueInboxSongs.map((item, i) => {
@@ -2048,6 +2119,19 @@
             `;
         }
 
+        // Toggle Friend Function
+        window.toggleFriend = async (uid) => {
+            if(AppState.friends.includes(uid)) {
+                AppState.friends = AppState.friends.filter(id => id !== uid);
+                showToast("Removed from friends");
+            } else {
+                AppState.friends.push(uid);
+                showToast("Added to friends!");
+            }
+            await saveUserData();
+            if(AppState.currentView === 'settings') renderSettings();
+        };
+
         // --- Settings & User Analytics Dashboard ---
         function renderSettings() {
             let timerDisplay = AppState.sleepTimerActive ? 'Active' : 'Off';
@@ -2070,21 +2154,58 @@
                 `;
             }).join('');
 
+            // Detailed DNA Composition Bar
+            const colors = ['bg-brand-500', 'bg-pink-500', 'bg-blue-500', 'bg-yellow-500'];
+            let dnaBarHTML = '';
+            let dnaLegendHTML = '';
+            Object.entries(taste.percentages).forEach(([genre, pct], i) => {
+                dnaBarHTML += `<div class="h-full dna-segment ${colors[i%colors.length]}" style="width: ${pct}%"></div>`;
+                dnaLegendHTML += `
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-sm ${colors[i%colors.length]}"></div>
+                        <span class="text-xs text-gray-300 font-medium">${genre} (${pct}%)</span>
+                    </div>
+                `;
+            });
+
+            if(dnaBarHTML === '') {
+                dnaBarHTML = `<div class="h-full w-full bg-dark-600"></div>`;
+                dnaLegendHTML = `<div class="text-xs text-gray-500">Listen to music to generate your DNA.</div>`;
+            }
+
             // Community HTML
             let communityHTML = '';
             if(AppState.communityUsers.length > 0) {
-                communityHTML = AppState.communityUsers.slice(0,6).map(u => `
-                    <div class="bg-dark-800/80 p-3 rounded-xl border border-white/5 flex items-center gap-3 hover:bg-white/5 transition-colors cursor-pointer group">
-                        <img src="${u.photo}" class="w-10 h-10 rounded-full object-cover">
+                communityHTML = AppState.communityUsers.map(u => {
+                    const isFriend = AppState.friends.includes(u.uid);
+                    let timeStr = "Not active today";
+                    let isActive = false;
+                    
+                    if (u.todayDate === new Date().toISOString().split('T')[0] && u.todayAppTime > 0) {
+                        isActive = true;
+                        const mins = Math.floor(u.todayAppTime / 60);
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs > 0) timeStr = `${hrs}h ${mins%60}m today`;
+                        else timeStr = `${mins}m today`;
+                    }
+                    
+                    return `
+                    <div class="bg-dark-800/80 p-4 rounded-2xl border border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors group">
+                        <div class="relative">
+                            <img src="${u.photo}" class="w-12 h-12 rounded-full object-cover">
+                            ${isActive ? '<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2px] border-dark-800 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div>' : ''}
+                        </div>
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold text-white truncate group-hover:text-brand-400 transition-colors">${u.name}</div>
-                            <div class="text-[10px] text-brand-400 font-medium uppercase tracking-wider truncate">${u.tasteCluster || 'New Listener'}</div>
+                            <div class="text-[10px] text-gray-400 font-medium truncate flex items-center gap-1 mt-0.5">
+                                <i data-lucide="clock" class="w-3 h-3"></i> ${timeStr}
+                            </div>
                         </div>
-                        <div class="text-xs text-gray-500 shrink-0 flex items-center gap-1" title="Top Artist">
-                            <i data-lucide="mic-2" class="w-3 h-3"></i> <span class="truncate max-w-[60px]">${u.topArtist || 'Unknown'}</span>
-                        </div>
+                        <button onclick="toggleFriend('${u.uid}')" class="p-2.5 rounded-full transition-colors ${isFriend ? 'bg-brand-500/20 text-brand-400 hover:bg-brand-500/30' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}" title="${isFriend ? 'Remove Friend' : 'Add Friend'}">
+                            <i data-lucide="${isFriend ? 'user-check' : 'user-plus'}" class="w-5 h-5"></i>
+                        </button>
                     </div>
-                `).join('');
+                `}).join('');
             } else {
                 communityHTML = `<div class="text-sm text-gray-500 p-4">No other users found yet.</div>`;
             }
@@ -2094,21 +2215,34 @@
                     <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
                         <h2 class="text-3xl font-black tracking-tight">Profile & Analytics</h2>
                         <!-- Official AM Button -->
-                        <a href="https://ibpofficial.github.io/am" target="_blank" class="flex items-center gap-3 bg-gradient-to-r from-brand-600 to-indigo-600 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-brand-500/20 hover:scale-105 transition-transform w-fit border border-brand-400/30">
+                        <a href="https://bpofficial.github.io/am" target="_blank" class="flex items-center gap-3 bg-gradient-to-r from-brand-600 to-indigo-600 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-brand-500/20 hover:scale-105 transition-transform w-fit border border-brand-400/30">
                             <div class="w-6 h-6 bg-white text-brand-600 rounded-full flex items-center justify-center font-black text-xs leading-none">AM</div>
                             Official Page
                         </a>
                     </div>
                     
-                    <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex items-center gap-6 shadow-xl relative overflow-hidden">
+                    <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8 border border-white/5 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-xl relative overflow-hidden text-center md:text-left">
                         <div class="absolute -right-10 -bottom-10 opacity-5 pointer-events-none">
                             <i data-lucide="activity" class="w-48 h-48"></i>
                         </div>
-                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-20 h-20 md:w-28 md:h-28 rounded-full shadow-2xl object-cover border-4 border-dark-800 ring-2 ring-brand-500/30 relative z-10">
-                        <div class="overflow-hidden relative z-10">
-                            <div class="text-xs text-brand-400 font-bold uppercase tracking-[0.15em] mb-1 flex items-center gap-1.5"><i data-lucide="award" class="w-3.5 h-3.5"></i> ${taste.cluster}</div>
+                        <img src="${AppState.user.photoURL || `https://ui-avatars.com/api/?name=${AppState.userName}`}" class="w-24 h-24 md:w-28 md:h-28 rounded-full shadow-2xl object-cover border-4 border-dark-800 ring-2 ring-brand-500/30 relative z-10 shrink-0">
+                        <div class="overflow-hidden relative z-10 flex-1">
+                            <div class="text-xs text-brand-400 font-bold uppercase tracking-[0.15em] mb-1 flex items-center justify-center md:justify-start gap-1.5"><i data-lucide="award" class="w-3.5 h-3.5"></i> ${taste.cluster}</div>
                             <div class="font-black text-3xl md:text-4xl tracking-tight mb-1 truncate text-white drop-shadow-md">${AppState.userName || 'Aura User'}</div>
-                            <div class="text-gray-400 font-medium text-sm truncate">${AppState.user.email}</div>
+                            <div class="text-gray-400 font-medium text-sm truncate mb-4">${AppState.user.email}</div>
+                            
+                            <!-- DNA Composition Bar -->
+                            <div class="w-full max-w-sm mx-auto md:mx-0">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-[10px] text-white font-bold uppercase tracking-wider">Aura DNA Split</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full overflow-hidden flex bg-dark-700 mb-3 shadow-inner">
+                                    ${dnaBarHTML}
+                                </div>
+                                <div class="flex flex-wrap gap-x-4 gap-y-2 justify-center md:justify-start">
+                                    ${dnaLegendHTML}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2140,9 +2274,9 @@
                     </div>
 
                     <!-- Community Discover -->
-                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2 mt-4"><i data-lucide="users" class="text-brand-400 w-5 h-5"></i> Community Discover</h3>
-                    <p class="text-xs text-gray-400 mb-4 font-medium -mt-2">See what other Aura listeners are vibing with.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2 mt-4"><i data-lucide="users" class="text-brand-400 w-5 h-5"></i> Community Directory</h3>
+                    <p class="text-xs text-gray-400 mb-4 font-medium -mt-2">Find friends, see who's online, and share music.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-10">
                         ${communityHTML}
                     </div>
 
@@ -2239,9 +2373,9 @@
                     document.getElementById('sidebar-timer-status').classList.remove('text-brand-400');
                     showToast("Sleep timer ended. Playback paused.");
                 }
-            }, 5000); // Check periodically
+            }, 5000); 
             
-            renderSettings(); // Update UI immediately
+            renderSettings(); 
         };
 
 
@@ -2840,15 +2974,26 @@
         window.openShareModal = (songId) => {
             AppState.songToShareId = songId;
             const content = document.getElementById('share-modal-content');
-            if (AppState.communityUsers.length === 0) {
-                content.innerHTML = '<p class="text-sm text-gray-400 font-medium">No other users found on the platform yet.</p>';
+            
+            const friendsList = AppState.communityUsers.filter(u => AppState.friends.includes(u.uid));
+            
+            if (friendsList.length === 0) {
+                content.innerHTML = `
+                    <div class="text-center py-6 text-gray-400 text-sm">
+                        <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="users" class="w-6 h-6 text-gray-500"></i>
+                        </div>
+                        <p class="font-medium">You don't have any friends yet.</p>
+                        <p class="text-xs mt-1">Add friends from the Community Directory in Settings to share songs directly with them.</p>
+                    </div>`;
             } else {
-                content.innerHTML = AppState.communityUsers.map(u => `
-                    <button onclick="handleShareSong('${u.uid}')" class="w-full text-left p-3 rounded-xl bg-dark-900/50 hover:bg-dark-700 font-medium text-sm transition-colors flex justify-between items-center border border-transparent hover:border-white/5">
+                content.innerHTML = friendsList.map(u => `
+                    <button onclick="handleShareSong('${u.uid}')" class="w-full text-left p-3 rounded-xl bg-dark-900/50 hover:bg-dark-700 font-medium text-sm transition-colors flex justify-between items-center border border-transparent hover:border-brand-500/50 group">
                         <div class="flex items-center gap-3">
                             <img src="${u.photo}" class="w-8 h-8 rounded-full object-cover">
                             <span>${u.name}</span>
                         </div>
+                        <i data-lucide="send" class="w-4 h-4 text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                     </button>
                 `).join('');
             }
@@ -2874,7 +3019,7 @@
                     songId: songId,
                     timestamp: Date.now()
                 });
-                showToast("Song shared successfully!");
+                showToast("Song sent to friend successfully!");
                 closeShareModal();
             } catch (err) {
                 showToast("Failed to share song.");
